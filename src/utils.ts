@@ -10,6 +10,7 @@ export const findlightRayPoints = (
 
   const slope = dy / dx;
   // person is 150 away from left mirror
+  // TODO: refactor so this only supports the bound ray or just make the bottom function work for both use cases
   const reflectedX = isBoundRay ? objectX - 150 : objectX - dx;
   const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
   return { reflectedX, reflectedY };

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Line, Circle, Shape } from "react-konva";
 import Konva from "konva";
 import { findlightRayPoints, findlightRayPointsRecursive } from "./utils";
+import { RoomObject } from "./components/RoomObject";
 
 const MirrorDemo: React.FC = () => {
   const lineLength = 200;
@@ -13,9 +14,12 @@ const MirrorDemo: React.FC = () => {
   const leftMirrorPoints: { x: number; y: number }[] = [];
 
   const circleRadius = 5;
-  const numberOfPoints = 10;
-  const startingPoint = 10;
-  const triangleCenter = { x: 270, y: 250 };
+  const numberOfPoints = 20;
+  const startingPoint = numberOfPoints;
+  const triangleCenter = { x: 245, y: 250 };
+  const distTriangeToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
+  const distTriangeToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
+  const mirrorSpacing = rightMirrorX - leftMirrorX;
 
   const personRadius = 14;
 
@@ -23,6 +27,28 @@ const MirrorDemo: React.FC = () => {
     { x: number; y: number }[]
   >([]);
   const [personPosition, setPersonPosition] = useState({ x: 350, y: 480 });
+  const [virtualTriangles, setVirtualTriangles] = useState<
+    Array<{ x: number; y: number; mirrored?: boolean }>
+  >([]);
+  const [virtualMirrors, setVirtualMirrors] = useState<Array<{ x: number }>>(
+    []
+  );
+  const addVirtualRoomElements = (bounces: number) => {
+    const distanceFinalSegment =
+      bounces % 2 === 1 ? distTriangeToRightMirror : distTriangeToLeftMirror;
+    console.log(rightMirrorX, bounces - 1, distanceFinalSegment);
+    const newTriangleX =
+      rightMirrorX + (bounces - 1) * mirrorSpacing + distanceFinalSegment;
+    const newTriangle = {
+      x: newTriangleX,
+      y: triangleCenter.y,
+      mirrored: bounces % 2 === 1,
+    };
+    const newMirror = { x: rightMirrorX + mirrorSpacing * bounces };
+
+    setVirtualTriangles((prev) => [...prev, newTriangle]);
+    setVirtualMirrors((prev) => [...prev, newMirror]);
+  };
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -163,6 +189,7 @@ const MirrorDemo: React.FC = () => {
                   .slice(0, currentSegment + 1)
                   .concat([{ x: newX, y: newY }])
               );
+              addVirtualRoomElements(points.length - 2);
             }
           }
         } else {
@@ -189,97 +216,123 @@ const MirrorDemo: React.FC = () => {
   };
 
   return (
-    <Stage width={800} height={600} style={{ backgroundColor: "#c3c3c3" }}>
-      <Layer ref={layerRef}>
-        <Line points={rightLinePoints} stroke="black" />
-        {rightMirrorPoints.map(({ x, y }, index) => (
-          <Circle
-            key={index}
-            x={x}
-            y={y}
-            radius={circleRadius}
-            fill="purple"
-            onClick={() =>
-              handleCircleClick(
-                triangleCenter.x + 20,
-                triangleCenter.y + 20,
-                x,
-                y,
-                1
-              )
-            }
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "800px",
+        height: "600px",
+        overflowY: "hidden",
+        overflowX: "auto",
+        whiteSpace: "nowrap",
+        border: "1px green solid",
+      }}
+    >
+      <Stage
+        width={2200}
+        height={600}
+        style={{ backgroundColor: "#c3c3c3", display: "inline-block" }}
+      >
+        <Layer ref={layerRef}>
+          <Line points={rightLinePoints} stroke="black" />
+          {rightMirrorPoints.map(({ x, y }, index) => (
+            <Circle
+              key={index}
+              x={x}
+              y={y}
+              radius={circleRadius}
+              fill="purple"
+              onClick={() =>
+                handleCircleClick(
+                  triangleCenter.x + 20,
+                  triangleCenter.y + 20,
+                  x,
+                  y,
+                  1
+                )
+              }
+            />
+          ))}
+          <Line points={leftLinePoints} stroke="black" />
+          {leftMirrorPoints.map(({ x, y }, index) => (
+            <Circle
+              key={index}
+              x={x}
+              y={y}
+              radius={circleRadius}
+              fill="purple"
+              onClick={() =>
+                handleCircleClick(
+                  triangleCenter.x + 20,
+                  triangleCenter.y + 20,
+                  x,
+                  y,
+                  0
+                )
+              }
+            />
+          ))}
+          {virtualTriangles.map((triangle, index) => (
+            <RoomObject
+              key={`room_object_${index}`}
+              x={triangle.x}
+              y={triangle.y}
+              mirrored={triangle.mirrored}
+            />
+          ))}
+          {virtualMirrors.map((mirror, index) => (
+            <Line
+              key={index}
+              points={[
+                mirror.x,
+                (startingPoint / numberOfPoints) * lineLength,
+                mirror.x,
+                ((startingPoint + numberOfPoints) / numberOfPoints) *
+                  lineLength,
+              ]}
+              stroke="blue"
+              strokeWidth={2}
+            />
+          ))}
+          <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
+          <Line
+            points={animationLine.flatMap((point) => [point.x, point.y])}
+            stroke="blue"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+            pointerLength={10}
+            pointerWidth={10}
           />
-        ))}
-        <Line points={leftLinePoints} stroke="black" />
-        {leftMirrorPoints.map(({ x, y }, index) => (
-          <Circle
-            key={index}
-            x={x}
-            y={y}
-            radius={circleRadius}
-            fill="purple"
-            onClick={() =>
-              handleCircleClick(
-                triangleCenter.x + 20,
-                triangleCenter.y + 20,
-                x,
-                y,
-                0
-              )
-            }
+          <Line
+            points={mirrorBoundsPointsBottom}
+            stroke="orange"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+            pointerLength={10}
+            pointerWidth={10}
           />
-        ))}
-        <Shape
-          sceneFunc={(context, shape) => {
-            context.beginPath();
-            context.moveTo(0, 0);
-            context.lineTo(40, 20);
-            context.lineTo(0, 40);
-            context.closePath();
-            context.fillStrokeShape(shape);
-          }}
-          fill="green"
-          x={triangleCenter.x}
-          y={triangleCenter.y}
-        />
-        <Line
-          points={animationLine.flatMap((point) => [point.x, point.y])}
-          stroke="blue"
-          strokeWidth={2}
-          lineCap="round"
-          lineJoin="round"
-          pointerLength={10}
-          pointerWidth={10}
-        />
-        <Line
-          points={mirrorBoundsPointsBottom}
-          stroke="orange"
-          strokeWidth={2}
-          lineCap="round"
-          lineJoin="round"
-          pointerLength={10}
-          pointerWidth={10}
-        />
-        <Line
-          points={mirrorBoundsPointsTop}
-          stroke="orange"
-          strokeWidth={2}
-          lineCap="round"
-          lineJoin="round"
-          pointerLength={10}
-          pointerWidth={10}
-        />
-        <Circle
-          x={personPosition.x}
-          y={personPosition.y}
-          radius={personRadius}
-          fill="blue"
-          draggable
-          dragBoundFunc={(pos) => ({ x: personPosition.x, y: pos.y })}
-          onDragMove={handleDragMove}
-        />
-      </Layer>
-    </Stage>
+          <Line
+            points={mirrorBoundsPointsTop}
+            stroke="orange"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+            pointerLength={10}
+            pointerWidth={10}
+          />
+          <Circle
+            x={personPosition.x}
+            y={personPosition.y}
+            radius={personRadius}
+            fill="blue"
+            draggable
+            dragBoundFunc={(pos) => ({ x: personPosition.x, y: pos.y })}
+            onDragMove={handleDragMove}
+          />
+        </Layer>
+      </Stage>
+    </div>
   );
 };
 
