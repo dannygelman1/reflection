@@ -1,38 +1,84 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Line, Circle, Shape, Arrow } from "react-konva";
 import Konva from "konva";
+import { findlightRayPoints } from "./utils";
 
 const MirrorDemo: React.FC = () => {
-  const linePoints: number[] = [];
   const lineLength = 200;
-  const circleCenters: number[][] = [];
+
+  const rightMirrorX = 400;
+  const rightMirrorPoints: { x: number; y: number }[] = [];
+
+  const leftMirrorX = 200;
+  const leftMirrorPoints: { x: number; y: number }[] = [];
+
   const circleRadius = 5;
   const numberOfPoints = 10;
-  const triangleCenter = { x: 50, y: 150 };
+  const startingPoint = 10;
+  const triangleCenter = { x: 270, y: 250 };
+
+  const personStartingPoint = { x: 350, y: 480 };
+  const personRadius = 20;
 
   const [animationLine, setAnimationLine] = useState<number[]>([]);
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
 
-  for (let i = 3; i <= numberOfPoints; i++) {
+  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
     const y = (i / numberOfPoints) * lineLength;
-    linePoints.push(150);
-    linePoints.push(y);
-    circleCenters.push([150, y]);
+    rightMirrorPoints.push({ x: rightMirrorX, y });
   }
+  const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
+
+  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
+    const y = (i / numberOfPoints) * lineLength;
+
+    leftMirrorPoints.push({ x: leftMirrorX, y });
+  }
+  const leftLinePoints = leftMirrorPoints.flatMap((p) => [p.x, p.y]);
+
+  console.log("rightMirrorPoints", rightMirrorPoints);
+
+  const mirrorBoundsBottomPoint = findlightRayPoints(
+    personStartingPoint.x,
+    personStartingPoint.y,
+    rightMirrorPoints[numberOfPoints].x,
+    rightMirrorPoints[numberOfPoints].y
+  );
+  const mirrorBoundsTopPoint = findlightRayPoints(
+    personStartingPoint.x,
+    personStartingPoint.y,
+    rightMirrorPoints[0].x,
+    rightMirrorPoints[0].y
+  );
+  const mirrorBoundsPointsBottom = [
+    personStartingPoint.x,
+    personStartingPoint.y,
+    rightMirrorPoints[numberOfPoints].x,
+    rightMirrorPoints[numberOfPoints].y,
+    mirrorBoundsBottomPoint.reflectedX,
+    mirrorBoundsBottomPoint.reflectedY,
+  ];
+  const mirrorBoundsPointsTop = [
+    personStartingPoint.x,
+    personStartingPoint.y,
+    rightMirrorPoints[0].x,
+    rightMirrorPoints[0].y,
+    mirrorBoundsTopPoint.reflectedX,
+    mirrorBoundsTopPoint.reflectedY,
+  ];
+  console.log(mirrorBoundsPointsBottom, mirrorBoundsBottomPoint);
 
   const handleCircleClick = (x: number, y: number) => {
     const triangleX = triangleCenter.x + 20;
     const triangleY = triangleCenter.y + 20;
-
-    const dx = x - triangleX;
-    const dy = y - triangleY;
-
-    const slope = -(dy / dx);
-    const reflectedX = triangleX;
-    const reflectedY = slope * triangleX + y + -slope * x;
-
+    const { reflectedX, reflectedY } = findlightRayPoints(
+      triangleX,
+      triangleY,
+      x,
+      y
+    );
     animateLine(triangleX, triangleY, x, y, reflectedX, reflectedY);
   };
 
@@ -98,10 +144,23 @@ const MirrorDemo: React.FC = () => {
   }, []);
 
   return (
-    <Stage width={600} height={300} style={{ border: "2px solid green" }}>
+    <Stage width={800} height={600} style={{ backgroundColor: "#c3c3c3" }}>
       <Layer ref={layerRef}>
-        <Line points={linePoints} stroke="black" />
-        {circleCenters.map(([x, y], index) => (
+        <Line points={[200, 0, 200, 800]} stroke="black" />
+        <Line points={[400, 0, 400, 800]} stroke="black" />
+        <Line points={rightLinePoints} stroke="black" />
+        {rightMirrorPoints.map(({ x, y }, index) => (
+          <Circle
+            key={index}
+            x={x}
+            y={y}
+            radius={circleRadius}
+            fill="red"
+            onClick={() => handleCircleClick(x, y)}
+          />
+        ))}
+        <Line points={leftLinePoints} stroke="black" />
+        {leftMirrorPoints.map(({ x, y }, index) => (
           <Circle
             key={index}
             x={x}
@@ -132,6 +191,30 @@ const MirrorDemo: React.FC = () => {
           lineJoin="round"
           pointerLength={10}
           pointerWidth={10}
+        />
+        <Line
+          points={mirrorBoundsPointsBottom}
+          stroke="orange"
+          strokeWidth={2}
+          lineCap="round"
+          lineJoin="round"
+          pointerLength={10}
+          pointerWidth={10}
+        />
+        <Line
+          points={mirrorBoundsPointsTop}
+          stroke="orange"
+          strokeWidth={2}
+          lineCap="round"
+          lineJoin="round"
+          pointerLength={10}
+          pointerWidth={10}
+        />
+        <Circle
+          x={personStartingPoint.x}
+          y={personStartingPoint.y}
+          radius={personRadius}
+          fill="green"
         />
       </Layer>
     </Stage>

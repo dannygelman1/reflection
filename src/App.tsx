@@ -4,9 +4,7 @@ import MirrorDemo from "./MirrorDemo";
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <MirrorDemo />
-      </header>
+      <MirrorDemo />
     </div>
   );
 }
