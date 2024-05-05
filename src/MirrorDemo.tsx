@@ -38,19 +38,19 @@ const MirrorDemo: React.FC = () => {
   }
   const leftLinePoints = leftMirrorPoints.flatMap((p) => [p.x, p.y]);
 
-  console.log("rightMirrorPoints", rightMirrorPoints);
-
   const mirrorBoundsBottomPoint = findlightRayPoints(
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y
+    rightMirrorPoints[numberOfPoints].y,
+    true
   );
   const mirrorBoundsTopPoint = findlightRayPoints(
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y
+    rightMirrorPoints[0].y,
+    true
   );
   const mirrorBoundsPointsBottom = [
     personPosition.x,
@@ -68,7 +68,6 @@ const MirrorDemo: React.FC = () => {
     mirrorBoundsTopPoint.reflectedX,
     mirrorBoundsTopPoint.reflectedY,
   ];
-  console.log(mirrorBoundsPointsBottom, mirrorBoundsBottomPoint);
 
   const handleCircleClick = (x: number, y: number) => {
     const triangleX = triangleCenter.x + 20;
