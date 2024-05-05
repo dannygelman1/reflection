@@ -218,7 +218,7 @@ const MirrorDemo: React.FC = () => {
           x={personPosition.x}
           y={personPosition.y}
           radius={personRadius}
-          fill="blue"
+          fill="orange"
           draggable
           dragBoundFunc={(pos) => ({ x: personPosition.x, y: pos.y })}
           onDragMove={handleDragMove}
