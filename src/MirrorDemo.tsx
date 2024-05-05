@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Stage, Layer, Line, Circle, Shape } from "react-konva";
+import React, { useState, useEffect, useRef, ReactNode } from "react";
+import { Stage, Layer, Line, Circle, Shape, Group } from "react-konva";
 import Konva from "konva";
-import { findlightRayPoints, findlightRayPointsRecursive } from "./utils";
+import {
+  findRoomBounds,
+  findVirtualRoomBounds,
+  findlightRayPoints,
+  findlightRayPointsRecursive,
+} from "./utils";
 import { RoomObject } from "./components/RoomObject";
 
 const MirrorDemo: React.FC = () => {
@@ -33,6 +38,7 @@ const MirrorDemo: React.FC = () => {
   const [virtualMirrors, setVirtualMirrors] = useState<Array<{ x: number }>>(
     []
   );
+
   const addVirtualRoomElements = (bounces: number) => {
     const distanceFinalSegment =
       bounces % 2 === 1 ? distTriangeToRightMirror : distTriangeToLeftMirror;
@@ -59,19 +65,29 @@ const MirrorDemo: React.FC = () => {
   }
   const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
 
-  const mirrorBoundsBottomPoint = findlightRayPoints(
+  const mirrorBoundsBottomPoint = findRoomBounds(
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y,
-    true
+    rightMirrorPoints[numberOfPoints].y
   );
-  const mirrorBoundsTopPoint = findlightRayPoints(
+  const mirrorBoundsTopPoint = findRoomBounds(
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y,
-    true
+    rightMirrorPoints[0].y
+  );
+  const virtualMirrorBoundsBottomPoint = findVirtualRoomBounds(
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[numberOfPoints].x,
+    rightMirrorPoints[numberOfPoints].y
+  );
+  const virtualMirrorBoundsTopPoint = findVirtualRoomBounds(
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[0].x,
+    rightMirrorPoints[0].y
   );
   const mirrorBoundsPointsBottom = [
     personPosition.x,
@@ -88,6 +104,22 @@ const MirrorDemo: React.FC = () => {
     rightMirrorPoints[0].y,
     mirrorBoundsTopPoint.reflectedX,
     mirrorBoundsTopPoint.reflectedY,
+  ];
+  const virtualMirrorBoundsPointsBottom = [
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[numberOfPoints].x,
+    rightMirrorPoints[numberOfPoints].y,
+    virtualMirrorBoundsBottomPoint.newX,
+    virtualMirrorBoundsBottomPoint.newY,
+  ];
+  const virtualMirrorBoundsPointsTop = [
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[0].x,
+    rightMirrorPoints[0].y,
+    virtualMirrorBoundsTopPoint.newX,
+    virtualMirrorBoundsTopPoint.newY,
   ];
 
   const leftLinePoints: number[] = [];
@@ -189,7 +221,7 @@ const MirrorDemo: React.FC = () => {
                   .slice(0, currentSegment + 1)
                   .concat([{ x: newX, y: newY }])
               );
-              addVirtualRoomElements(points.length - 2);
+              // addVirtualRoomElements(points.length - 2);
             }
           }
         } else {
@@ -203,6 +235,8 @@ const MirrorDemo: React.FC = () => {
   };
 
   useEffect(() => {
+    Array.from(Array(20).keys()).map((i) => addVirtualRoomElements(i));
+
     return () => {
       if (animRef.current) {
         animRef.current.stop();
@@ -233,6 +267,52 @@ const MirrorDemo: React.FC = () => {
         style={{ backgroundColor: "#c3c3c3", display: "inline-block" }}
       >
         <Layer ref={layerRef}>
+          <MaskedContent
+            maskPoints={[
+              {
+                x: virtualMirrorBoundsBottomPoint.newX,
+                y: virtualMirrorBoundsBottomPoint.newY,
+              },
+              {
+                x: virtualMirrorBoundsTopPoint.newX,
+                y: virtualMirrorBoundsTopPoint.newY,
+              },
+
+              {
+                x: rightMirrorX,
+                y: rightMirrorPoints[0].y,
+              },
+              {
+                x: rightMirrorX,
+                y: rightMirrorPoints[rightMirrorPoints.length - 1].y,
+              },
+            ]}
+          >
+            {virtualTriangles.map((triangle, index) => (
+              <RoomObject
+                key={`room_object_${index}`}
+                x={triangle.x}
+                y={triangle.y}
+                mirrored={triangle.mirrored}
+                inVirtualRoom
+              />
+            ))}
+            {virtualMirrors.map((mirror, index) => (
+              <Line
+                key={index}
+                points={[
+                  mirror.x,
+                  (startingPoint / numberOfPoints) * lineLength,
+                  mirror.x,
+                  ((startingPoint + numberOfPoints) / numberOfPoints) *
+                    lineLength,
+                ]}
+                stroke="blue"
+                strokeWidth={2}
+                opacity={0.1}
+              />
+            ))}
+          </MaskedContent>
           <Line points={rightLinePoints} stroke="black" />
           {rightMirrorPoints.map(({ x, y }, index) => (
             <Circle
@@ -271,28 +351,7 @@ const MirrorDemo: React.FC = () => {
               }
             />
           ))}
-          {virtualTriangles.map((triangle, index) => (
-            <RoomObject
-              key={`room_object_${index}`}
-              x={triangle.x}
-              y={triangle.y}
-              mirrored={triangle.mirrored}
-            />
-          ))}
-          {virtualMirrors.map((mirror, index) => (
-            <Line
-              key={index}
-              points={[
-                mirror.x,
-                (startingPoint / numberOfPoints) * lineLength,
-                mirror.x,
-                ((startingPoint + numberOfPoints) / numberOfPoints) *
-                  lineLength,
-              ]}
-              stroke="blue"
-              strokeWidth={2}
-            />
-          ))}
+
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
           <Line
             points={animationLine.flatMap((point) => [point.x, point.y])}
@@ -321,6 +380,24 @@ const MirrorDemo: React.FC = () => {
             pointerLength={10}
             pointerWidth={10}
           />
+          <Line
+            points={virtualMirrorBoundsPointsBottom}
+            stroke="orange"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+            pointerLength={10}
+            pointerWidth={10}
+          />
+          <Line
+            points={virtualMirrorBoundsPointsTop}
+            stroke="orange"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+            pointerLength={10}
+            pointerWidth={10}
+          />
           <Circle
             x={personPosition.x}
             y={personPosition.y}
@@ -337,3 +414,34 @@ const MirrorDemo: React.FC = () => {
 };
 
 export default MirrorDemo;
+
+interface MaskedContentProps {
+  maskPoints: { x: number; y: number }[];
+  children: ReactNode;
+}
+const MaskedContent = ({ maskPoints, children }: MaskedContentProps) => {
+  return (
+    <Group>
+      {children}
+      {/* The masking shape */}
+      <Shape
+        sceneFunc={(context, shape) => {
+          context.beginPath();
+          maskPoints.forEach((point, index) => {
+            if (index === 0) {
+              context.moveTo(point.x, point.y);
+            } else {
+              context.lineTo(point.x, point.y);
+            }
+          });
+          context.closePath();
+          // Fill is important for the mask to work
+          context.fillStrokeShape(shape);
+        }}
+        fill="white"
+        globalCompositeOperation="destination-in"
+      />
+      {/* Child elements that the mask will be applied to */}
+    </Group>
+  );
+};

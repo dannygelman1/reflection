@@ -16,6 +16,36 @@ export const findlightRayPoints = (
   return { reflectedX, reflectedY };
 };
 
+export const findVirtualRoomBounds = (
+  objectX: number,
+  objectY: number,
+  mirrorX: number,
+  mirrorY: number
+) => {
+  const dx = mirrorX - objectX;
+  const dy = mirrorY - objectY;
+
+  const slope = dy / dx;
+  const newX = 10000;
+  const newY = slope * 10000 + objectY - slope * objectX;
+  return { newX, newY };
+};
+
+export const findRoomBounds = (
+  objectX: number,
+  objectY: number,
+  mirrorX: number,
+  mirrorY: number
+) => {
+  const dx = mirrorX - objectX;
+  const dy = mirrorY - objectY;
+
+  const slope = dy / dx;
+  const reflectedX = 200;
+  const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
+  return { reflectedX, reflectedY };
+};
+
 export const findlightRayPointsRecursive = (
   objectX: number,
   objectY: number,

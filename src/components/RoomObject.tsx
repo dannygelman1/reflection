@@ -4,9 +4,15 @@ interface RoomObjectProps {
   x: number;
   y: number;
   mirrored?: boolean;
+  inVirtualRoom?: boolean;
 }
 
-export const RoomObject = ({ x, y, mirrored }: RoomObjectProps) => {
+export const RoomObject = ({
+  x,
+  y,
+  mirrored,
+  inVirtualRoom,
+}: RoomObjectProps) => {
   const scaleX = mirrored ? -1 : 1;
 
   return (
@@ -20,6 +26,7 @@ export const RoomObject = ({ x, y, mirrored }: RoomObjectProps) => {
         context.fillStrokeShape(shape);
       }}
       fill={"green"}
+      opacity={inVirtualRoom ? 0.1 : 1}
       x={x}
       y={y}
       scaleY={1}
