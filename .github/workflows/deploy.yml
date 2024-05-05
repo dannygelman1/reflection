@@ -10,20 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
         with:
-          node-version: "20"
-
-      - name: Install Dependencies
+          node-version: 20
+      - name: Install dependencies
         run: npm install
-
-      - name: Build Project
+      - name: Build
         run: npm run build
-
+      - name: Deploy
+        uses: actions/checkout@v2
+        with:
+          ref: "gh-pages"
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
