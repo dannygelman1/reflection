@@ -17,7 +17,7 @@ const MirrorDemo: React.FC = () => {
   const startingPoint = 10;
   const triangleCenter = { x: 270, y: 250 };
 
-  const personRadius = 20;
+  const personRadius = 14;
 
   const [animationLine, setAnimationLine] = useState<
     { x: number; y: number }[]
@@ -80,10 +80,8 @@ const MirrorDemo: React.FC = () => {
   const mirrors: { x: number; yMin: number; yMax: number }[] = [
     {
       x: leftMirrorX,
-      yMin: leftMirrorPoints[0]?.y ?? mirrorBoundsBottomPoint.reflectedY,
-      yMax:
-        leftMirrorPoints[leftMirrorPoints.length - 1]?.y ??
-        mirrorBoundsTopPoint.reflectedY,
+      yMin: Math.max(200, mirrorBoundsTopPoint.reflectedY),
+      yMax: Math.min(400, mirrorBoundsBottomPoint.reflectedY),
     },
     {
       x: rightMirrorX,
@@ -99,6 +97,7 @@ const MirrorDemo: React.FC = () => {
     endY: number,
     mirroIndex: number
   ) => {
+    animRef.current?.stop();
     const points = findlightRayPointsRecursive(
       startX,
       startY,
@@ -151,6 +150,21 @@ const MirrorDemo: React.FC = () => {
             ...points.slice(0, currentSegment + 1),
             { x: newX, y: newY },
           ]);
+          // Check if the current point is inside the circle (person)
+          if (newX < points[currentSegment].x) {
+            let distanceToPerson = Math.sqrt(
+              Math.pow(newX - personPosition.x, 2) +
+                Math.pow(newY - personPosition.y, 2)
+            );
+            if (distanceToPerson <= personRadius) {
+              animRef.current.stop();
+              setAnimationLine(
+                points
+                  .slice(0, currentSegment + 1)
+                  .concat([{ x: newX, y: newY }])
+              );
+            }
+          }
         } else {
           setAnimationLine(points);
           animRef.current.stop();
@@ -160,59 +174,6 @@ const MirrorDemo: React.FC = () => {
 
     animRef.current.start();
   };
-
-  // const animateLine = (
-  //   startX: number,
-  //   startY: number,
-  //   midX: number,
-  //   midY: number,
-  //   endX: number,
-  //   endY: number
-  // ) => {
-  //   let totalDistanceTraveled = 0;
-  //   let currentSegment = 1;
-  //   let distances = {
-  //     1: Math.sqrt((midX - startX) ** 2 + (midY - startY) ** 2),
-  //     2: Math.sqrt((endX - midX) ** 2 + (endY - midY) ** 2),
-  //   };
-  //   let dx = midX - startX;
-  //   let dy = midY - startY;
-
-  //   animRef.current = new Konva.Animation((frame) => {
-  //     if (frame && animRef.current) {
-  //       const speed = 0.2;
-  //       const timeDelta = frame.timeDiff;
-  //       totalDistanceTraveled += speed * timeDelta;
-
-  //       if (currentSegment === 1) {
-  //         let distance = Math.min(totalDistanceTraveled, distances[1]);
-  //         let ratio = distance / distances[1];
-  //         let newX = startX + dx * ratio;
-  //         let newY = startY + dy * ratio;
-  //         setAnimationLine([startX, startY, newX, newY]);
-
-  //         if (distance >= distances[1]) {
-  //           currentSegment = 2;
-  //           totalDistanceTraveled = 0;
-  //           dx = endX - midX;
-  //           dy = endY - midY;
-  //         }
-  //       } else if (currentSegment === 2) {
-  //         let distance = Math.min(totalDistanceTraveled, distances[2]);
-  //         let ratio = distance / distances[2];
-  //         let newX = midX + dx * ratio;
-  //         let newY = midY + dy * ratio;
-  //         setAnimationLine([startX, startY, midX, midY, newX, newY]);
-
-  //         if (distance >= distances[2]) {
-  //           animRef.current.stop();
-  //         }
-  //       }
-  //     }
-  //   }, layerRef.current);
-
-  //   animRef.current.start();
-  // };
 
   useEffect(() => {
     return () => {
@@ -271,8 +232,8 @@ const MirrorDemo: React.FC = () => {
         <Shape
           sceneFunc={(context, shape) => {
             context.beginPath();
-            context.moveTo(20, 0);
-            context.lineTo(40, 40);
+            context.moveTo(0, 0);
+            context.lineTo(40, 20);
             context.lineTo(0, 40);
             context.closePath();
             context.fillStrokeShape(shape);
