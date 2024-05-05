@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Line, Circle, Shape } from "react-konva";
 import Konva from "konva";
-import { findlightRayPoints } from "./utils";
+import { findlightRayPoints, findlightRayPointsRecursive } from "./utils";
 
 const MirrorDemo: React.FC = () => {
   const lineLength = 200;
@@ -19,7 +19,9 @@ const MirrorDemo: React.FC = () => {
 
   const personRadius = 20;
 
-  const [animationLine, setAnimationLine] = useState<number[]>([]);
+  const [animationLine, setAnimationLine] = useState<
+    { x: number; y: number }[]
+  >([]);
   const [personPosition, setPersonPosition] = useState({ x: 350, y: 480 });
 
   const layerRef = useRef<Konva.Layer>(null);
@@ -75,34 +77,53 @@ const MirrorDemo: React.FC = () => {
     leftLinePoints.push(y);
   }
 
-  const handleCircleClick = (x: number, y: number) => {
-    const triangleX = triangleCenter.x + 20;
-    const triangleY = triangleCenter.y + 20;
-    const { reflectedX, reflectedY } = findlightRayPoints(
-      triangleX,
-      triangleY,
-      x,
-      y
-    );
-    animateLine(triangleX, triangleY, x, y, reflectedX, reflectedY);
-  };
+  const mirrors: { x: number; yMin: number; yMax: number }[] = [
+    {
+      x: leftMirrorX,
+      yMin: leftMirrorPoints[0]?.y ?? mirrorBoundsBottomPoint.reflectedY,
+      yMax:
+        leftMirrorPoints[leftMirrorPoints.length - 1]?.y ??
+        mirrorBoundsTopPoint.reflectedY,
+    },
+    {
+      x: rightMirrorX,
+      yMin: rightMirrorPoints[0]?.y,
+      yMax: rightMirrorPoints[rightMirrorPoints.length - 1]?.y,
+    },
+  ];
 
-  const animateLine = (
+  const handleCircleClick = (
     startX: number,
     startY: number,
-    midX: number,
-    midY: number,
     endX: number,
-    endY: number
+    endY: number,
+    mirroIndex: number
   ) => {
+    const points = findlightRayPointsRecursive(
+      startX,
+      startY,
+      endX,
+      endY,
+      mirrors,
+      mirroIndex
+    );
+    console.log(points);
+    animateLine(
+      [
+        { x: startX, y: startY },
+        { x: endX, y: endY },
+      ].concat(points)
+    );
+  };
+
+  const animateLine = (points: { x: number; y: number }[]) => {
     let totalDistanceTraveled = 0;
-    let currentSegment = 1;
-    let distances = {
-      1: Math.sqrt((midX - startX) ** 2 + (midY - startY) ** 2),
-      2: Math.sqrt((endX - midX) ** 2 + (endY - midY) ** 2),
-    };
-    let dx = midX - startX;
-    let dy = midY - startY;
+    let currentSegment = 0;
+    let distances = points
+      .slice(1)
+      .map((point, i) =>
+        Math.sqrt((point.x - points[i].x) ** 2 + (point.y - points[i].y) ** 2)
+      );
 
     animRef.current = new Konva.Animation((frame) => {
       if (frame && animRef.current) {
@@ -110,35 +131,88 @@ const MirrorDemo: React.FC = () => {
         const timeDelta = frame.timeDiff;
         totalDistanceTraveled += speed * timeDelta;
 
-        if (currentSegment === 1) {
-          let distance = Math.min(totalDistanceTraveled, distances[1]);
-          let ratio = distance / distances[1];
-          let newX = startX + dx * ratio;
-          let newY = startY + dy * ratio;
-          setAnimationLine([startX, startY, newX, newY]);
+        while (
+          currentSegment < distances.length &&
+          totalDistanceTraveled >= distances[currentSegment]
+        ) {
+          totalDistanceTraveled -= distances[currentSegment];
+          currentSegment++;
+        }
 
-          if (distance >= distances[1]) {
-            currentSegment = 2;
-            totalDistanceTraveled = 0;
-            dx = endX - midX;
-            dy = endY - midY;
-          }
-        } else if (currentSegment === 2) {
-          let distance = Math.min(totalDistanceTraveled, distances[2]);
-          let ratio = distance / distances[2];
-          let newX = midX + dx * ratio;
-          let newY = midY + dy * ratio;
-          setAnimationLine([startX, startY, midX, midY, newX, newY]);
-
-          if (distance >= distances[2]) {
-            animRef.current.stop();
-          }
+        if (currentSegment < distances.length) {
+          let ratio = totalDistanceTraveled / distances[currentSegment];
+          let newX =
+            points[currentSegment].x +
+            (points[currentSegment + 1].x - points[currentSegment].x) * ratio;
+          let newY =
+            points[currentSegment].y +
+            (points[currentSegment + 1].y - points[currentSegment].y) * ratio;
+          setAnimationLine([
+            ...points.slice(0, currentSegment + 1),
+            { x: newX, y: newY },
+          ]);
+        } else {
+          setAnimationLine(points);
+          animRef.current.stop();
         }
       }
     }, layerRef.current);
 
     animRef.current.start();
   };
+
+  // const animateLine = (
+  //   startX: number,
+  //   startY: number,
+  //   midX: number,
+  //   midY: number,
+  //   endX: number,
+  //   endY: number
+  // ) => {
+  //   let totalDistanceTraveled = 0;
+  //   let currentSegment = 1;
+  //   let distances = {
+  //     1: Math.sqrt((midX - startX) ** 2 + (midY - startY) ** 2),
+  //     2: Math.sqrt((endX - midX) ** 2 + (endY - midY) ** 2),
+  //   };
+  //   let dx = midX - startX;
+  //   let dy = midY - startY;
+
+  //   animRef.current = new Konva.Animation((frame) => {
+  //     if (frame && animRef.current) {
+  //       const speed = 0.2;
+  //       const timeDelta = frame.timeDiff;
+  //       totalDistanceTraveled += speed * timeDelta;
+
+  //       if (currentSegment === 1) {
+  //         let distance = Math.min(totalDistanceTraveled, distances[1]);
+  //         let ratio = distance / distances[1];
+  //         let newX = startX + dx * ratio;
+  //         let newY = startY + dy * ratio;
+  //         setAnimationLine([startX, startY, newX, newY]);
+
+  //         if (distance >= distances[1]) {
+  //           currentSegment = 2;
+  //           totalDistanceTraveled = 0;
+  //           dx = endX - midX;
+  //           dy = endY - midY;
+  //         }
+  //       } else if (currentSegment === 2) {
+  //         let distance = Math.min(totalDistanceTraveled, distances[2]);
+  //         let ratio = distance / distances[2];
+  //         let newX = midX + dx * ratio;
+  //         let newY = midY + dy * ratio;
+  //         setAnimationLine([startX, startY, midX, midY, newX, newY]);
+
+  //         if (distance >= distances[2]) {
+  //           animRef.current.stop();
+  //         }
+  //       }
+  //     }
+  //   }, layerRef.current);
+
+  //   animRef.current.start();
+  // };
 
   useEffect(() => {
     return () => {
@@ -164,7 +238,15 @@ const MirrorDemo: React.FC = () => {
             y={y}
             radius={circleRadius}
             fill="purple"
-            onClick={() => handleCircleClick(x, y)}
+            onClick={() =>
+              handleCircleClick(
+                triangleCenter.x + 20,
+                triangleCenter.y + 20,
+                x,
+                y,
+                1
+              )
+            }
           />
         ))}
         <Line points={leftLinePoints} stroke="black" />
@@ -175,7 +257,15 @@ const MirrorDemo: React.FC = () => {
             y={y}
             radius={circleRadius}
             fill="purple"
-            onClick={() => handleCircleClick(x, y)}
+            onClick={() =>
+              handleCircleClick(
+                triangleCenter.x + 20,
+                triangleCenter.y + 20,
+                x,
+                y,
+                0
+              )
+            }
           />
         ))}
         <Shape
@@ -192,7 +282,7 @@ const MirrorDemo: React.FC = () => {
           y={triangleCenter.y}
         />
         <Line
-          points={animationLine}
+          points={animationLine.flatMap((point) => [point.x, point.y])}
           stroke="blue"
           strokeWidth={2}
           lineCap="round"
