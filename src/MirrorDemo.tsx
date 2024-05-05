@@ -17,10 +17,10 @@ const MirrorDemo: React.FC = () => {
   const startingPoint = 10;
   const triangleCenter = { x: 270, y: 250 };
 
-  const personStartingPoint = { x: 350, y: 480 };
   const personRadius = 20;
 
   const [animationLine, setAnimationLine] = useState<number[]>([]);
+  const [personPosition, setPersonPosition] = useState({ x: 350, y: 480 });
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -41,28 +41,28 @@ const MirrorDemo: React.FC = () => {
   console.log("rightMirrorPoints", rightMirrorPoints);
 
   const mirrorBoundsBottomPoint = findlightRayPoints(
-    personStartingPoint.x,
-    personStartingPoint.y,
+    personPosition.x,
+    personPosition.y,
     rightMirrorPoints[numberOfPoints].x,
     rightMirrorPoints[numberOfPoints].y
   );
   const mirrorBoundsTopPoint = findlightRayPoints(
-    personStartingPoint.x,
-    personStartingPoint.y,
+    personPosition.x,
+    personPosition.y,
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y
   );
   const mirrorBoundsPointsBottom = [
-    personStartingPoint.x,
-    personStartingPoint.y,
+    personPosition.x,
+    personPosition.y,
     rightMirrorPoints[numberOfPoints].x,
     rightMirrorPoints[numberOfPoints].y,
     mirrorBoundsBottomPoint.reflectedX,
     mirrorBoundsBottomPoint.reflectedY,
   ];
   const mirrorBoundsPointsTop = [
-    personStartingPoint.x,
-    personStartingPoint.y,
+    personPosition.x,
+    personPosition.y,
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y,
     mirrorBoundsTopPoint.reflectedX,
@@ -143,6 +143,11 @@ const MirrorDemo: React.FC = () => {
     };
   }, []);
 
+  const handleDragMove = (e: any) => {
+    const newY = e.target.y();
+    setPersonPosition((prev) => ({ ...prev, y: newY }));
+  };
+
   return (
     <Stage width={800} height={600} style={{ backgroundColor: "#c3c3c3" }}>
       <Layer ref={layerRef}>
@@ -211,10 +216,13 @@ const MirrorDemo: React.FC = () => {
           pointerWidth={10}
         />
         <Circle
-          x={personStartingPoint.x}
-          y={personStartingPoint.y}
+          x={personPosition.x}
+          y={personPosition.y}
           radius={personRadius}
           fill="green"
+          draggable
+          dragBoundFunc={(pos) => ({ x: personPosition.x, y: pos.y })}
+          onDragMove={handleDragMove}
         />
       </Layer>
     </Stage>
