@@ -257,7 +257,7 @@ const MirrorDemo: React.FC = () => {
         animRef.current.stop();
       }
     };
-  }, []);
+  }, [addVirtualRoomElements]);
 
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
