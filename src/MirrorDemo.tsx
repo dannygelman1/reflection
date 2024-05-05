@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  ReactNode,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, ReactNode } from "react";
 import { Stage, Layer, Line, Circle, Shape, Group } from "react-konva";
 import Konva from "konva";
 import {
