@@ -46,7 +46,7 @@ export const findRoomBounds = (
   return { reflectedX, reflectedY };
 };
 
-export const findlightRayPointsRecursive = (
+export const findLightRayPointsRecursive = (
   objectX: number,
   objectY: number,
   mirrorX: number,
@@ -62,11 +62,6 @@ export const findlightRayPointsRecursive = (
   const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
 
   // Base case: Check if out of mirror bounds or if there are no more mirrors
-  console.log(
-    reflectedY,
-    mirrors[currentMirrorIndex ? 0 : 1].yMin,
-    mirrors[currentMirrorIndex ? 0 : 1].yMax
-  );
   if (
     reflectedY < mirrors[currentMirrorIndex ? 0 : 1].yMin ||
     reflectedY > mirrors[currentMirrorIndex ? 0 : 1].yMax
@@ -77,7 +72,7 @@ export const findlightRayPointsRecursive = (
     const nextMirrorIndex = currentMirrorIndex ? 0 : 1; // Loop back to first mirror if needed
     return [
       { x: reflectedX, y: reflectedY },
-      ...findlightRayPointsRecursive(
+      ...findLightRayPointsRecursive(
         mirrorX,
         mirrorY,
         reflectedX,

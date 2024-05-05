@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useRef, ReactNode } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+  useCallback,
+} from "react";
 import { Stage, Layer, Line, Circle, Shape, Group } from "react-konva";
 import Konva from "konva";
 import {
   findRoomBounds,
   findVirtualRoomBounds,
-  findlightRayPointsRecursive,
+  findLightRayPointsRecursive,
 } from "./utils";
 import { RoomObject } from "./components/RoomObject";
 
@@ -34,22 +40,15 @@ const MirrorDemo: React.FC = () => {
     { x: number; y: number }[]
   >([]);
   const [personPosition, setPersonPosition] = useState(personCenter);
-  const [virtualTriangles, setVirtualTriangles] = useState<
-    Array<{ x: number; y: number; mirrored?: boolean }>
-  >([]);
-  const [virtualMirrors, setVirtualMirrors] = useState<Array<{ x: number }>>(
-    []
-  );
-  const [virtualPerson, setVirtuaPerson] = useState<
-    Array<{ x: number; y: number }>
-  >([]);
+  const virtualTriangles: { x: number; y: number; mirrored?: boolean }[] = [];
+  const virtualMirrors: { x: number }[] = [];
+  const virtualPerson: { x: number; y: number }[] = [];
 
   const addVirtualRoomElements = (bounces: number) => {
     const distanceTriangleFinalSegment =
       bounces % 2 === 1 ? distTriangeToRightMirror : distTriangeToLeftMirror;
     const distancePersonFinalSegment =
       bounces % 2 === 1 ? distPersonToRightMirror : distPersonToLeftMirror;
-    console.log(rightMirrorX, bounces - 1, distanceTriangleFinalSegment);
     const newTriangleX =
       rightMirrorX +
       (bounces - 1) * mirrorSpacing +
@@ -66,11 +65,16 @@ const MirrorDemo: React.FC = () => {
       mirrored: bounces % 2 === 1,
     };
     const newMirror = { x: rightMirrorX + mirrorSpacing * bounces };
-
-    setVirtuaPerson((prev) => [...prev, newPerson]);
-    setVirtualTriangles((prev) => [...prev, newTriangle]);
-    setVirtualMirrors((prev) => [...prev, newMirror]);
+    virtualTriangles.push(newTriangle);
+    virtualMirrors.push(newMirror);
+    virtualPerson.push(newPerson);
+    // setVirtuaPerson((prev) => [...prev, newPerson]);
+    // setVirtualTriangles((prev) => [...prev, newTriangle]);
+    // setVirtualMirrors((prev) => [...prev, newMirror]);
   };
+  for (let i = 0; i < 20; i++) {
+    addVirtualRoomElements(i);
+  }
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -169,18 +173,17 @@ const MirrorDemo: React.FC = () => {
     startY: number,
     endX: number,
     endY: number,
-    mirroIndex: number
+    mirrorIndex: number
   ) => {
     animRef.current?.stop();
-    const points = findlightRayPointsRecursive(
+    const points = findLightRayPointsRecursive(
       startX,
       startY,
       endX,
       endY,
       mirrors,
-      mirroIndex
+      mirrorIndex
     );
-    console.log(points);
     animateLine(
       [
         { x: startX, y: startY },
@@ -250,14 +253,12 @@ const MirrorDemo: React.FC = () => {
   };
 
   useEffect(() => {
-    Array.from(Array(20).keys()).map((i) => addVirtualRoomElements(i));
-
     return () => {
       if (animRef.current) {
         animRef.current.stop();
       }
     };
-  }, [addVirtualRoomElements]);
+  }, []);
 
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
