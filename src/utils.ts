@@ -9,7 +9,7 @@ export const findlightRayPoints = (
   const dy = mirrorY - objectY;
 
   const slope = dy / dx;
-  const reflectedX = isBoundRay ? objectX - 200 : objectX;
+  const reflectedX = isBoundRay ? objectX - 150 : objectX;
   const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
   return { reflectedX, reflectedY };
 };

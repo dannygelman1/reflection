@@ -31,13 +31,6 @@ const MirrorDemo: React.FC = () => {
   }
   const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
 
-  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
-    const y = (i / numberOfPoints) * lineLength;
-
-    leftMirrorPoints.push({ x: leftMirrorX, y });
-  }
-  const leftLinePoints = leftMirrorPoints.flatMap((p) => [p.x, p.y]);
-
   const mirrorBoundsBottomPoint = findlightRayPoints(
     personPosition.x,
     personPosition.y,
@@ -68,6 +61,19 @@ const MirrorDemo: React.FC = () => {
     mirrorBoundsTopPoint.reflectedX,
     mirrorBoundsTopPoint.reflectedY,
   ];
+
+  const leftLinePoints: number[] = [];
+
+  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
+    const y = (i / numberOfPoints) * lineLength;
+    if (
+      y < mirrorBoundsBottomPoint.reflectedY &&
+      y > mirrorBoundsTopPoint.reflectedY
+    )
+      leftMirrorPoints.push({ x: leftMirrorX, y });
+    leftLinePoints.push(leftMirrorX);
+    leftLinePoints.push(y);
+  }
 
   const handleCircleClick = (x: number, y: number) => {
     const triangleX = triangleCenter.x + 20;
@@ -150,8 +156,6 @@ const MirrorDemo: React.FC = () => {
   return (
     <Stage width={800} height={600} style={{ backgroundColor: "#c3c3c3" }}>
       <Layer ref={layerRef}>
-        <Line points={[200, 0, 200, 800]} stroke="black" />
-        <Line points={[400, 0, 400, 800]} stroke="black" />
         <Line points={rightLinePoints} stroke="black" />
         {rightMirrorPoints.map(({ x, y }, index) => (
           <Circle
