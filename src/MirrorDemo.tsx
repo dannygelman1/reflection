@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Stage, Layer, Line, Circle, Shape, Arrow } from "react-konva";
+import { Stage, Layer, Line, Circle, Shape } from "react-konva";
 import Konva from "konva";
 import { findlightRayPoints } from "./utils";
 
