@@ -159,7 +159,7 @@ const MirrorDemo: React.FC = () => {
             x={x}
             y={y}
             radius={circleRadius}
-            fill="red"
+            fill="purple"
             onClick={() => handleCircleClick(x, y)}
           />
         ))}
@@ -170,7 +170,7 @@ const MirrorDemo: React.FC = () => {
             x={x}
             y={y}
             radius={circleRadius}
-            fill="red"
+            fill="purple"
             onClick={() => handleCircleClick(x, y)}
           />
         ))}
