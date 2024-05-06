@@ -5,8 +5,10 @@ import {
   findRoomBounds,
   findVirtualRoomBounds,
   findLightRayPointsRecursive,
+  getReflectedLineSegments,
 } from "./utils";
 import { RoomObject } from "./components/RoomObject";
+import { LineSegment } from "./types";
 
 const MirrorDemo: React.FC = () => {
   const lineLength = 200;
@@ -20,10 +22,10 @@ const MirrorDemo: React.FC = () => {
   const circleRadius = 5;
   const numberOfPoints = 20;
   const startingPoint = numberOfPoints;
-  const triangleCenter = { x: 245, y: 250 };
+  const triangleCenter = { x: 270, y: 275 };
   const personCenter = { x: 350, y: 480 };
-  const distTriangeToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
-  const distTriangeToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
+  const distTriangleToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
+  const distTriangleToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
   const distPersonToRightMirror = Math.abs(rightMirrorX - personCenter.x);
   const distPersonToLeftMirror = Math.abs(leftMirrorX - personCenter.x);
   const mirrorSpacing = rightMirrorX - leftMirrorX;
@@ -31,7 +33,7 @@ const MirrorDemo: React.FC = () => {
   const personRadius = 14;
 
   const [animationLine, setAnimationLine] = useState<
-    { x: number; y: number }[]
+    { points: number[]; color: string }[]
   >([]);
   const [personPosition, setPersonPosition] = useState(personCenter);
   const virtualTriangles: { x: number; y: number; mirrored?: boolean }[] = [];
@@ -40,7 +42,7 @@ const MirrorDemo: React.FC = () => {
 
   const addVirtualRoomElements = (bounces: number) => {
     const distanceTriangleFinalSegment =
-      bounces % 2 === 1 ? distTriangeToRightMirror : distTriangeToLeftMirror;
+      bounces % 2 === 1 ? distTriangleToRightMirror : distTriangleToLeftMirror;
     const distancePersonFinalSegment =
       bounces % 2 === 1 ? distPersonToRightMirror : distPersonToLeftMirror;
     const newTriangleX =
@@ -62,9 +64,6 @@ const MirrorDemo: React.FC = () => {
     virtualTriangles.push(newTriangle);
     virtualMirrors.push(newMirror);
     virtualPerson.push(newPerson);
-    // setVirtuaPerson((prev) => [...prev, newPerson]);
-    // setVirtualTriangles((prev) => [...prev, newTriangle]);
-    // setVirtualMirrors((prev) => [...prev, newMirror]);
   };
   for (let i = 0; i < 20; i++) {
     addVirtualRoomElements(i);
@@ -184,6 +183,7 @@ const MirrorDemo: React.FC = () => {
         { x: endX, y: endY },
       ].concat(points)
     );
+    setLineSegments([]);
   };
 
   const animateLine = (points: { x: number; y: number }[]) => {
@@ -194,6 +194,31 @@ const MirrorDemo: React.FC = () => {
       .map((point, i) =>
         Math.sqrt((point.x - points[i].x) ** 2 + (point.y - points[i].y) ** 2)
       );
+
+    // const colors = [
+    //   "#00BFFF",
+    //   "#800080",
+    //   "#FFA500",
+    //   "#00FA9A",
+    //   "#FF69B4",
+    //   "#6A5ACD",
+    //   "#FFD700",
+    //   "#32CD32",
+    //   "#4682B4",
+    //   "#FF6347",
+    // ].reverse();
+    const colors = [
+      "#FF6347",
+      "#4682B4",
+      "#32CD32",
+      "#FFD700",
+      "#6A5ACD",
+      "#FF69B4",
+      "#00FA9A",
+      "#FFA500",
+      "#800080",
+      "#00BFFF",
+    ];
 
     animRef.current = new Konva.Animation((frame) => {
       if (frame && animRef.current) {
@@ -217,35 +242,72 @@ const MirrorDemo: React.FC = () => {
           let newY =
             points[currentSegment].y +
             (points[currentSegment + 1].y - points[currentSegment].y) * ratio;
-          setAnimationLine([
+
+          // Intersection check (assuming the circle's center and radius are defined)
+          let distanceToPerson = Math.sqrt(
+            (newX - personPosition.x) ** 2 + (newY - personPosition.y) ** 2
+          );
+          if (
+            distanceToPerson <= personRadius &&
+            newX < points[currentSegment].x
+          ) {
+            animRef.current.stop();
+            // Finalize the line to the intersection point
+            setAnimationLine(
+              [
+                ...points.slice(0, currentSegment + 1),
+                { x: newX, y: newY },
+              ].map((point, index, arr) => ({
+                points: arr[index + 1]
+                  ? [point.x, point.y, arr[index + 1].x, arr[index + 1].y]
+                  : [point.x, point.y],
+                color: colors[index % colors.length],
+              }))
+            );
+            let newPoints = points.slice(0, currentSegment + 1);
+            newPoints.reverse();
+            const reflectedSegments = getReflectedLineSegments(
+              rightMirrorX,
+              distTriangleToRightMirror,
+              distTriangleToLeftMirror,
+              mirrorSpacing,
+              newPoints
+            );
+            startAnimation(reflectedSegments);
+            return;
+          }
+
+          // Update the line segments with the new point
+          const updatedSegments = [
             ...points.slice(0, currentSegment + 1),
             { x: newX, y: newY },
-          ]);
-          // Check if the current point is inside the circle (person)
-          if (newX < points[currentSegment].x) {
-            let distanceToPerson = Math.sqrt(
-              Math.pow(newX - personPosition.x, 2) +
-                Math.pow(newY - personPosition.y, 2)
-            );
-            if (distanceToPerson <= personRadius) {
-              animRef.current.stop();
-              setAnimationLine(
-                points
-                  .slice(0, currentSegment + 1)
-                  .concat([{ x: newX, y: newY }])
-              );
-            }
-          }
+          ].map((point, index, arr) => ({
+            points: arr[index + 1]
+              ? [point.x, point.y, arr[index + 1].x, arr[index + 1].y]
+              : [point.x, point.y],
+            color: colors[index % colors.length],
+          }));
+          setAnimationLine(updatedSegments);
         } else {
-          setAnimationLine(points);
+          // Complete the animation if all segments are done
           animRef.current.stop();
+          setAnimationLine(
+            points.map((point, index) => ({
+              points: [
+                point.x,
+                point.y,
+                points[index + 1]?.x,
+                points[index + 1]?.y,
+              ].filter((p) => p !== undefined),
+              color: colors[index % colors.length],
+            }))
+          );
         }
       }
     }, layerRef.current);
 
     animRef.current.start();
   };
-
   useEffect(() => {
     return () => {
       if (animRef.current) {
@@ -257,6 +319,34 @@ const MirrorDemo: React.FC = () => {
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
     setPersonPosition((prev) => ({ ...prev, y: newY }));
+    setAnimationLine([{ points: [], color: "" }]);
+    setLineSegments([]);
+  };
+
+  const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
+
+  const startAnimation = (lineSegments: LineSegment[]) => {
+    console.log("lineSegments", lineSegments);
+    setLineSegments(lineSegments);
+
+    animRef.current = new Konva.Animation((frame) => {
+      if (frame) {
+        const timeDelta = frame.timeDiff;
+        const speed = 0.003;
+
+        setLineSegments((prevSegments) =>
+          prevSegments.map((seg, index) => {
+            if (index === 0 || prevSegments[index - 1].opacity >= 1) {
+              const progress = Math.min(seg.opacity + speed * timeDelta, 1);
+              return { ...seg, opacity: progress };
+            }
+            return seg;
+          })
+        );
+      }
+    }, layerRef.current);
+
+    animRef.current.start();
   };
 
   return (
@@ -332,6 +422,22 @@ const MirrorDemo: React.FC = () => {
                 opacity={0.1}
               />
             ))}
+            {lineSegments.map((segment, index) => (
+              <Line
+                key={index}
+                points={[
+                  segment.start.x,
+                  segment.start.y,
+                  segment.end.x,
+                  segment.end.y,
+                ]}
+                stroke={segment.color}
+                strokeWidth={3}
+                lineCap="round"
+                lineJoin="round"
+                opacity={segment.opacity}
+              />
+            ))}
           </MaskedContent>
           <Line points={rightLinePoints} stroke="black" />
           {rightMirrorPoints.map(({ x, y }, index) => (
@@ -342,13 +448,7 @@ const MirrorDemo: React.FC = () => {
               radius={circleRadius}
               fill="purple"
               onClick={() =>
-                handleCircleClick(
-                  triangleCenter.x + 20,
-                  triangleCenter.y + 20,
-                  x,
-                  y,
-                  1
-                )
+                handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 1)
               }
             />
           ))}
@@ -361,27 +461,22 @@ const MirrorDemo: React.FC = () => {
               radius={circleRadius}
               fill="purple"
               onClick={() =>
-                handleCircleClick(
-                  triangleCenter.x + 20,
-                  triangleCenter.y + 20,
-                  x,
-                  y,
-                  0
-                )
+                handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 0)
               }
             />
           ))}
 
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
-          <Line
-            points={animationLine.flatMap((point) => [point.x, point.y])}
-            stroke="blue"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-            pointerLength={10}
-            pointerWidth={10}
-          />
+          {animationLine.map((segment, index) => (
+            <Line
+              key={index}
+              points={segment.points}
+              stroke={segment.color}
+              strokeWidth={2}
+              lineCap="round"
+              lineJoin="round"
+            />
+          ))}
           <Line
             points={mirrorBoundsPointsBottom}
             stroke="orange"

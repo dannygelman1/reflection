@@ -1,20 +1,4 @@
-export const findlightRayPoints = (
-  objectX: number,
-  objectY: number,
-  mirrorX: number,
-  mirrorY: number,
-  isBoundRay?: boolean
-) => {
-  const dx = mirrorX - objectX;
-  const dy = mirrorY - objectY;
-
-  const slope = dy / dx;
-  // person is 150 away from left mirror
-  // TODO: refactor so this only supports the bound ray or just make the bottom function work for both use cases
-  const reflectedX = isBoundRay ? objectX - 150 : objectX - dx;
-  const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
-  return { reflectedX, reflectedY };
-};
+import { LineSegment } from "./types";
 
 export const findVirtualRoomBounds = (
   objectX: number,
@@ -82,4 +66,58 @@ export const findLightRayPointsRecursive = (
       ),
     ];
   }
+};
+
+const colors = [
+  "#FF6347",
+  "#4682B4",
+  "#32CD32",
+  "#FFD700",
+  "#6A5ACD",
+  "#FF69B4",
+  "#00FA9A",
+  "#FFA500",
+  "#800080",
+  "#00BFFF",
+].reverse();
+
+export const getReflectedLineSegments = (
+  mirrorX: number,
+  distTriangleToRightMirror: number,
+  distTriangleToLeftMirror: number,
+  spaceBetweenMirrors: number,
+  points: { x: number; y: number }[]
+): LineSegment[] => {
+  const distanceTriangleFinalSegment =
+    points.length % 2 === 0
+      ? distTriangleToRightMirror
+      : distTriangleToLeftMirror;
+
+  const lineSegments = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const firstPoint = {
+      x: mirrorX + i * spaceBetweenMirrors,
+      y: points[i].y,
+    };
+    let secondPoint = {
+      x: mirrorX + (i + 1) * spaceBetweenMirrors,
+      y: points[i + 1].y,
+    };
+    if (i + 1 === points.length - 1) {
+      secondPoint = {
+        x: mirrorX + i * spaceBetweenMirrors + distanceTriangleFinalSegment,
+        y: points[i + 1].y,
+      };
+    }
+    const color =
+      colors[(i + (colors.length - points.length + 1)) % colors.length];
+
+    lineSegments.push({
+      start: firstPoint,
+      end: secondPoint,
+      opacity: 0,
+      color,
+    });
+  }
+  return lineSegments;
 };

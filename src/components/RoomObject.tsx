@@ -19,18 +19,20 @@ export const RoomObject = ({
     <Shape
       sceneFunc={(context, shape) => {
         context.beginPath();
-        context.moveTo(0, 0);
-        context.lineTo(40, 20);
-        context.lineTo(0, 40);
+        // Define the triangle centered at the origin
+        context.moveTo(-40 / 3, -20); // Move to A centered at origin
+        context.lineTo(80 / 3, 0); // Line to B centered at origin
+        context.lineTo(-40 / 3, 20); // Line to C centered at origin
         context.closePath();
+        // Fill and stroke the shape
         context.fillStrokeShape(shape);
       }}
       fill={"green"}
       opacity={inVirtualRoom ? 0.1 : 1}
-      x={x}
-      y={y}
+      x={x} // Set the position here
+      y={y} // Set the position here
+      scaleX={scaleX} // Apply mirroring
       scaleY={1}
-      scaleX={scaleX}
     />
   );
 };
