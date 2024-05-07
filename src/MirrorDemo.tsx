@@ -19,8 +19,12 @@ const MirrorDemo: React.FC = () => {
   const leftMirrorX = 200;
   const leftMirrorPoints: { x: number; y: number }[] = [];
 
-  const circleRadius = 5;
-  const numberOfPoints = 20;
+  const circleRadius = 3;
+  const hoveredCircleRadius = 6;
+  const numberOfPoints = 40;
+  const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
+  const [hoveredLeftIndex, setHoveredLeftIndex] = useState<number>(-1);
+
   const startingPoint = numberOfPoints;
   const triangleCenter = { x: 270, y: 275 };
   const personCenter = { x: 350, y: 480 };
@@ -82,13 +86,30 @@ const MirrorDemo: React.FC = () => {
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y
+    rightMirrorPoints[numberOfPoints].y,
+    leftMirrorX
   );
   const mirrorBoundsTopPoint = findRoomBounds(
     personPosition.x,
     personPosition.y,
     rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y
+    rightMirrorPoints[0].y,
+    leftMirrorX
+  );
+
+  const mirrorBoundsBottomPointBackRoom = findRoomBounds(
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[numberOfPoints].x,
+    rightMirrorPoints[numberOfPoints].y,
+    0
+  );
+  const mirrorBoundsTopPointBackRoom = findRoomBounds(
+    personPosition.x,
+    personPosition.y,
+    rightMirrorPoints[0].x,
+    rightMirrorPoints[0].y,
+    0
   );
   const virtualMirrorBoundsBottomPoint = findVirtualRoomBounds(
     personPosition.x,
@@ -109,6 +130,45 @@ const MirrorDemo: React.FC = () => {
     rightMirrorPoints[numberOfPoints].y,
     mirrorBoundsBottomPoint.reflectedX,
     mirrorBoundsBottomPoint.reflectedY,
+  ];
+  const lightRaysToPerson = [
+    { x: personPosition.x, y: personPosition.y + personRadius / 2 },
+    { x: personPosition.x, y: personPosition.y - personRadius / 2 },
+    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
+    {
+      x: rightMirrorPoints[numberOfPoints].x,
+      y: rightMirrorPoints[numberOfPoints].y,
+    },
+  ];
+  const lightRaysToMirror = [
+    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
+    {
+      x: rightMirrorPoints[numberOfPoints].x,
+      y: rightMirrorPoints[numberOfPoints].y,
+    },
+    {
+      x: mirrorBoundsBottomPointBackRoom.reflectedX,
+      y: mirrorBoundsBottomPointBackRoom.reflectedY,
+    },
+    {
+      x: mirrorBoundsTopPointBackRoom.reflectedX,
+      y: mirrorBoundsTopPointBackRoom.reflectedY,
+    },
+  ];
+  const reflectedLightRays = [
+    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
+    {
+      x: rightMirrorPoints[numberOfPoints].x,
+      y: rightMirrorPoints[numberOfPoints].y,
+    },
+    {
+      x: virtualMirrorBoundsBottomPoint.newX,
+      y: virtualMirrorBoundsBottomPoint.newY,
+    },
+    {
+      x: virtualMirrorBoundsTopPoint.newX,
+      y: virtualMirrorBoundsTopPoint.newY,
+    },
   ];
   const mirrorBoundsPointsTop = [
     personPosition.x,
@@ -439,14 +499,66 @@ const MirrorDemo: React.FC = () => {
               />
             ))}
           </MaskedContent>
+          <Shape
+            sceneFunc={(context, shape) => {
+              context.beginPath();
+              lightRaysToPerson.forEach((point, index) => {
+                if (index === 0) {
+                  context.moveTo(point.x, point.y);
+                } else {
+                  context.lineTo(point.x, point.y);
+                }
+              });
+              context.closePath();
+              context.fillStrokeShape(shape);
+            }}
+            fill="yellow"
+            opacity={0.3}
+          />
+          <Shape
+            sceneFunc={(context, shape) => {
+              context.beginPath();
+              lightRaysToMirror.forEach((point, index) => {
+                if (index === 0) {
+                  context.moveTo(point.x, point.y);
+                } else {
+                  context.lineTo(point.x, point.y);
+                }
+              });
+              context.closePath();
+              context.fillStrokeShape(shape);
+            }}
+            fill="yellow"
+            opacity={0.3}
+          />
+          <Shape
+            sceneFunc={(context, shape) => {
+              context.beginPath();
+              reflectedLightRays.forEach((point, index) => {
+                if (index === 0) {
+                  context.moveTo(point.x, point.y);
+                } else {
+                  context.lineTo(point.x, point.y);
+                }
+              });
+              context.closePath();
+              context.fillStrokeShape(shape);
+            }}
+            fill="yellow"
+            opacity={0.1}
+          />
           <Line points={rightLinePoints} stroke="black" />
           {rightMirrorPoints.map(({ x, y }, index) => (
             <Circle
               key={index}
               x={x}
               y={y}
-              radius={circleRadius}
               fill="purple"
+              radius={
+                hoveredRightIndex === index ? hoveredCircleRadius : circleRadius
+              }
+              onMouseEnter={() => setHoveredRightIndex(index)}
+              onMouseLeave={() => setHoveredRightIndex(-1)}
               onClick={() =>
                 handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 1)
               }
@@ -458,7 +570,11 @@ const MirrorDemo: React.FC = () => {
               key={index}
               x={x}
               y={y}
-              radius={circleRadius}
+              radius={
+                hoveredLeftIndex === index ? hoveredCircleRadius : circleRadius
+              }
+              onMouseEnter={() => setHoveredLeftIndex(index)}
+              onMouseLeave={() => setHoveredLeftIndex(-1)}
               fill="purple"
               onClick={() =>
                 handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 0)
@@ -477,42 +593,7 @@ const MirrorDemo: React.FC = () => {
               lineJoin="round"
             />
           ))}
-          <Line
-            points={mirrorBoundsPointsBottom}
-            stroke="orange"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-            pointerLength={10}
-            pointerWidth={10}
-          />
-          <Line
-            points={mirrorBoundsPointsTop}
-            stroke="orange"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-            pointerLength={10}
-            pointerWidth={10}
-          />
-          <Line
-            points={virtualMirrorBoundsPointsBottom}
-            stroke="orange"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-            pointerLength={10}
-            pointerWidth={10}
-          />
-          <Line
-            points={virtualMirrorBoundsPointsTop}
-            stroke="orange"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-            pointerLength={10}
-            pointerWidth={10}
-          />
+
           <Circle
             x={personPosition.x}
             y={personPosition.y}

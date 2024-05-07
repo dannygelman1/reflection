@@ -19,13 +19,14 @@ export const findRoomBounds = (
   objectX: number,
   objectY: number,
   mirrorX: number,
-  mirrorY: number
+  mirrorY: number,
+  reflectionDistance: number
 ) => {
   const dx = mirrorX - objectX;
   const dy = mirrorY - objectY;
 
   const slope = dy / dx;
-  const reflectedX = 200;
+  const reflectedX = reflectionDistance;
   const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
   return { reflectedX, reflectedY };
 };
