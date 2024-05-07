@@ -27,8 +27,7 @@ export const RoomObject = ({
         // Fill and stroke the shape
         context.fillStrokeShape(shape);
       }}
-      fill={"green"}
-      opacity={inVirtualRoom ? 0.1 : 1}
+      fill={inVirtualRoom ? "#6dad7f" : "green"}
       x={x} // Set the position here
       y={y} // Set the position here
       scaleX={scaleX} // Apply mirroring

@@ -51,6 +51,12 @@ export const findLightRayPointsRecursive = (
     reflectedY < mirrors[currentMirrorIndex ? 0 : 1].yMin ||
     reflectedY > mirrors[currentMirrorIndex ? 0 : 1].yMax
   ) {
+    if (reflectedY < 200 || reflectedY > 400) {
+      const reflectedX = currentMirrorIndex ? 0 : 2200;
+      const reflectedY = -1 * slope * reflectedX + mirrorY + slope * mirrorX;
+      return [{ x: reflectedX, y: reflectedY }];
+    } // End recursion, returning the final point
+    // else return [{ x: reflectedX, y: reflectedY }];
     return [{ x: reflectedX, y: reflectedY }]; // End recursion, returning the final point
   } else {
     // Recursive case: Calculate next reflection using next mirror
@@ -121,4 +127,15 @@ export const getReflectedLineSegments = (
     });
   }
   return lineSegments;
+};
+
+export const calculateAngle = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+) => {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  return Math.atan2(dy, dx);
 };
