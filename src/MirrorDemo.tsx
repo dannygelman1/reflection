@@ -123,14 +123,6 @@ const MirrorDemo: React.FC = () => {
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y
   );
-  const mirrorBoundsPointsBottom = [
-    personPosition.x,
-    personPosition.y,
-    rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y,
-    mirrorBoundsBottomPoint.reflectedX,
-    mirrorBoundsBottomPoint.reflectedY,
-  ];
   const lightRaysToPerson = [
     { x: personPosition.x, y: personPosition.y + personRadius / 2 },
     { x: personPosition.x, y: personPosition.y - personRadius / 2 },
@@ -169,30 +161,6 @@ const MirrorDemo: React.FC = () => {
       x: virtualMirrorBoundsTopPoint.newX,
       y: virtualMirrorBoundsTopPoint.newY,
     },
-  ];
-  const mirrorBoundsPointsTop = [
-    personPosition.x,
-    personPosition.y,
-    rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y,
-    mirrorBoundsTopPoint.reflectedX,
-    mirrorBoundsTopPoint.reflectedY,
-  ];
-  const virtualMirrorBoundsPointsBottom = [
-    personPosition.x,
-    personPosition.y,
-    rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y,
-    virtualMirrorBoundsBottomPoint.newX,
-    virtualMirrorBoundsBottomPoint.newY,
-  ];
-  const virtualMirrorBoundsPointsTop = [
-    personPosition.x,
-    personPosition.y,
-    rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y,
-    virtualMirrorBoundsTopPoint.newX,
-    virtualMirrorBoundsTopPoint.newY,
   ];
 
   const leftLinePoints: number[] = [];
