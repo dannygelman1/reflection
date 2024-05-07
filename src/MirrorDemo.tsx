@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, ReactNode } from "react";
-import { Stage, Layer, Line, Circle, Shape, Group } from "react-konva";
+import { Stage, Layer, Line, Circle, Shape, Group, Arrow } from "react-konva";
 import Konva from "konva";
 import {
   findRoomBounds,
@@ -58,13 +58,14 @@ const MirrorDemo: React.FC = () => {
   const [personPosition, setPersonPosition] = useState({
     x: personCenter.x,
     y: personCenter.y,
-    angle: calculateAngle(
-      personCenter.x,
-      personCenter.y,
-      rightMirrorX,
-      centerLineY
-    ),
+    angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
   });
+  const personPositionRef = useRef({
+    x: personCenter.x,
+    y: personCenter.y,
+    angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
+  });
+  const [startedMoving, setStartedMoving] = useState(false);
 
   const addVirtualRoomElements = (levels: number) => {
     const distanceTriangleFinalSegment =
@@ -79,7 +80,7 @@ const MirrorDemo: React.FC = () => {
       rightMirrorX + (levels - 1) * mirrorSpacing + distancePersonFinalSegment;
     const newPerson = {
       x: newPersonX,
-      y: personPosition.y,
+      y: personPositionRef.current.y,
     };
     const newTriangle = {
       x: newTriangleX,
@@ -105,49 +106,55 @@ const MirrorDemo: React.FC = () => {
   }
 
   const mirrorBoundsBottomPoint = findRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[numberOfPoints].x,
     rightMirrorPoints[numberOfPoints].y,
     leftMirrorX
   );
   const mirrorBoundsTopPoint = findRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y,
     leftMirrorX
   );
 
   const mirrorBoundsBottomPointBackRoom = findRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[numberOfPoints].x,
     rightMirrorPoints[numberOfPoints].y,
     0
   );
   const mirrorBoundsTopPointBackRoom = findRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y,
     0
   );
   const virtualMirrorBoundsBottomPoint = findVirtualRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[numberOfPoints].x,
     rightMirrorPoints[numberOfPoints].y
   );
   const virtualMirrorBoundsTopPoint = findVirtualRoomBounds(
-    personPosition.x,
-    personPosition.y,
+    personPositionRef.current.x,
+    personPositionRef.current.y,
     rightMirrorPoints[0].x,
     rightMirrorPoints[0].y
   );
   const lightRaysToPerson = [
-    { x: personPosition.x, y: personPosition.y + personRadius },
-    { x: personPosition.x, y: personPosition.y - personRadius },
+    {
+      x: personPositionRef.current.x,
+      y: personPositionRef.current.y + personRadius,
+    },
+    {
+      x: personPositionRef.current.x,
+      y: personPositionRef.current.y - personRadius,
+    },
     { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
     {
       x: rightMirrorPoints[numberOfPoints].x,
@@ -283,7 +290,8 @@ const MirrorDemo: React.FC = () => {
 
           // Intersection check (assuming the circle's center and radius are defined)
           let distanceToPerson = Math.sqrt(
-            (newX - personPosition.x) ** 2 + (newY - personPosition.y) ** 2
+            (newX - personPositionRef.current.x) ** 2 +
+              (newY - personPositionRef.current.y) ** 2
           );
           if (distanceToPerson <= personRadius) {
             animRef.current.stop();
@@ -355,8 +363,16 @@ const MirrorDemo: React.FC = () => {
 
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
-    const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300); // console.log("newAngle", newAngle);
+    setStartedMoving(true);
+    const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300);
     setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
+
+    personPositionRef.current = {
+      ...personPositionRef.current,
+      y: newY,
+      angle: newAngle,
+    };
+
     setAnimationLine([{ points: [], color: "" }]);
     setLineSegments([]);
   };
@@ -388,14 +404,14 @@ const MirrorDemo: React.FC = () => {
 
   return (
     <div
+      className="scrollbar"
       style={{
         width: "100%",
         maxWidth: "800px",
         height: "600px",
         overflowY: "hidden",
-        overflowX: "auto",
         whiteSpace: "nowrap",
-        border: "1px green solid",
+        border: "4px #347aeb solid",
       }}
     >
       <Stage
@@ -432,7 +448,7 @@ const MirrorDemo: React.FC = () => {
                   x={person.x}
                   y={personPosition.y}
                   radius={personRadius}
-                  fill="#5361fc"
+                  fill="#74a2ed"
                 />
                 <Shape
                   sceneFunc={(context, shape) => {
@@ -454,10 +470,11 @@ const MirrorDemo: React.FC = () => {
                     // Apply styles and make it visible
                     context.fillStrokeShape(shape);
                   }}
-                  fill="#5361fc"
+                  fill="#74a2ed"
                 />
               </Group>
             ))}
+
             {virtualMirrors.map((mirror, index) => (
               <Line
                 key={index}
@@ -468,9 +485,9 @@ const MirrorDemo: React.FC = () => {
                   ((startingPoint + numberOfPoints) / numberOfPoints) *
                     lineLength,
                 ]}
-                stroke="blue"
+                stroke="#6250e6"
                 strokeWidth={2}
-                opacity={0.3}
+                opacity={0.4}
               />
             ))}
             {lineSegments.map((segment, index) => (
@@ -505,7 +522,8 @@ const MirrorDemo: React.FC = () => {
                 x={point.x}
                 y={point.y}
                 radius={4}
-                fill="#5361fc"
+                fill="#6250e6"
+                opacity={0.4}
               />
             ))}
           </MaskedContent>
@@ -522,7 +540,7 @@ const MirrorDemo: React.FC = () => {
               context.closePath();
               context.fillStrokeShape(shape);
             }}
-            fill="yellow"
+            fill="white"
             opacity={0.3}
           />
           <Shape
@@ -538,7 +556,7 @@ const MirrorDemo: React.FC = () => {
               context.closePath();
               context.fillStrokeShape(shape);
             }}
-            fill="yellow"
+            fill="white"
             opacity={0.3}
           />
           <Shape
@@ -554,16 +572,16 @@ const MirrorDemo: React.FC = () => {
               context.closePath();
               context.fillStrokeShape(shape);
             }}
-            fill="yellow"
+            fill="white"
             opacity={0.1}
           />
-          <Line points={rightLinePoints} stroke="black" />
+          <Line points={rightLinePoints} stroke="#6250e6" />
           {rightMirrorPoints.map(({ x, y }, index) => (
             <Circle
               key={index}
               x={x}
               y={y}
-              fill="purple"
+              fill="#6250e6"
               radius={
                 hoveredRightIndex === index ? hoveredCircleRadius : circleRadius
               }
@@ -574,7 +592,7 @@ const MirrorDemo: React.FC = () => {
               }
             />
           ))}
-          <Line points={leftLinePoints} stroke="black" />
+          <Line points={leftLinePoints} stroke="#6250e6" />
           {leftMirrorPoints.map(({ x, y }, index) => (
             <Circle
               key={index}
@@ -585,7 +603,7 @@ const MirrorDemo: React.FC = () => {
               }
               onMouseEnter={() => setHoveredLeftIndex(index)}
               onMouseLeave={() => setHoveredLeftIndex(-1)}
-              fill="purple"
+              fill="#6250e6"
               onClick={() =>
                 handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 0)
               }
@@ -605,19 +623,33 @@ const MirrorDemo: React.FC = () => {
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
 
           <Circle
-            x={personPosition.x}
-            y={personPosition.y}
+            x={personPositionRef.current.x}
+            y={personPositionRef.current.y}
             radius={personRadius}
-            fill="blue"
+            fill="#347aeb"
             draggable
-            dragBoundFunc={(pos) => ({ x: personPosition.x, y: pos.y })}
+            dragBoundFunc={(pos) => {
+              const upperBound = 500;
+              const lowerBound = 100;
+
+              const newY = Math.max(lowerBound, Math.min(upperBound, pos.y));
+
+              return {
+                x: personPositionRef.current.x,
+                y: newY,
+              };
+            }}
             onDragMove={handleDragMove}
-          ></Circle>
+          />
+
           <Shape
             sceneFunc={(context, shape) => {
-              context.translate(personPosition.x, personPosition.y);
+              context.translate(
+                personPositionRef.current.x,
+                personPositionRef.current.y
+              );
 
-              context.rotate(personPosition.angle);
+              context.rotate(personPositionRef.current.angle);
 
               // Draw the triangle
               context.beginPath();
@@ -629,8 +661,9 @@ const MirrorDemo: React.FC = () => {
               // Apply styles and make it visible
               context.fillStrokeShape(shape);
             }}
-            fill="blue"
+            fill="#347aeb"
           />
+          {!startedMoving && <VerticalLineWithArrows />}
         </Layer>
       </Stage>
     </div>
@@ -667,5 +700,41 @@ const MaskedContent = ({ maskPoints, children }: MaskedContentProps) => {
       />
       {/* Child elements that the mask will be applied to */}
     </Group>
+  );
+};
+
+const VerticalLineWithArrows = () => {
+  const lineX = 350;
+  const lineStartY = 520;
+  const lineEndY = 555;
+  const arrowSize = 10;
+
+  return (
+    <>
+      {/* Vertical line */}
+      <Line
+        points={[lineX, lineStartY, lineX, lineEndY]}
+        stroke="black"
+        strokeWidth={2}
+      />
+      {/* Arrow at the top */}
+      <Arrow
+        points={[lineX, lineStartY + arrowSize, lineX, lineStartY]}
+        pointerLength={arrowSize}
+        pointerWidth={arrowSize}
+        fill="black"
+        stroke="black"
+        strokeWidth={2}
+      />
+      {/* Arrow at the bottom */}
+      <Arrow
+        points={[lineX, lineEndY - arrowSize, lineX, lineEndY]}
+        pointerLength={arrowSize}
+        pointerWidth={arrowSize}
+        fill="black"
+        stroke="black"
+        strokeWidth={2}
+      />
+    </>
   );
 };

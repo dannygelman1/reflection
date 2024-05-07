@@ -41,3 +41,21 @@
     transform: rotate(360deg);
   }
 }
+
+.scrollbar {
+  overflow-y: scroll; /* Enable vertical scrollbar */
+}
+
+/* Target scrollbar styles (works on Chrome, Safari, and some other browsers) */
+.scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollbar::-webkit-scrollbar-track {
+  background: #c3c3c3; /* Set the background color of the track */
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(112, 98, 98);
+  border-radius: 0px;
+}
