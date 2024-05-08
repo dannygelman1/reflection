@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Stage, Layer, Line, Circle, Shape } from "react-konva";
+import { Stage, Layer, Line, Circle } from "react-konva";
 import Konva from "konva";
 import {
   findLightRayPointsRecursive,
@@ -27,10 +27,9 @@ import {
 import { VirtualRooms } from "./components/VirtualRooms";
 import { MaskedContent } from "./components/Mask";
 import { useMirrorBounds } from "./hooks/useMirrorBounds";
+import { MirrorBounds } from "./components/MirrorBounds";
 
 const MirrorDemo: React.FC = () => {
-  const leftMirrorPoints: { x: number; y: number }[] = [];
-
   const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
   const [hoveredLeftIndex, setHoveredLeftIndex] = useState<number>(-1);
 
@@ -46,6 +45,12 @@ const MirrorDemo: React.FC = () => {
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
 
+  const personPositionRef = useRef({
+    x: personCenter.x,
+    y: personCenter.y,
+    angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
+  });
+
   const { rightMirrorPoints, rightLinePoints } = useMemo(() => {
     const rightMirrorPoints: { x: number; y: number }[] = [];
     for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
@@ -59,12 +64,6 @@ const MirrorDemo: React.FC = () => {
     };
   }, []);
 
-  const personPositionRef = useRef({
-    x: personCenter.x,
-    y: personCenter.y,
-    angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
-  });
-
   const {
     mirrorBoundsBottomPoint,
     mirrorBoundsTopPoint,
@@ -75,18 +74,26 @@ const MirrorDemo: React.FC = () => {
     reflectedLightRays,
   } = useMirrorBounds(personPositionRef, rightMirrorPoints);
 
-  const leftLinePoints: number[] = [];
+  const { leftMirrorPoints, leftLinePoints } = useMemo(() => {
+    const leftMirrorPoints: { x: number; y: number }[] = [];
+    const leftLinePoints: number[] = [];
 
-  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
-    const y = (i / numberOfPoints) * lineLength;
-    if (
-      y < mirrorBoundsBottomPoint.reflectedY &&
-      y > mirrorBoundsTopPoint.reflectedY
-    )
-      leftMirrorPoints.push({ x: leftMirrorX, y });
-    leftLinePoints.push(leftMirrorX);
-    leftLinePoints.push(y);
-  }
+    for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
+      const y = (i / numberOfPoints) * lineLength;
+
+      if (
+        y < mirrorBoundsBottomPoint.reflectedY &&
+        y > mirrorBoundsTopPoint.reflectedY
+      ) {
+        leftMirrorPoints.push({ x: leftMirrorX, y });
+      }
+
+      leftLinePoints.push(leftMirrorX);
+      leftLinePoints.push(y);
+    }
+
+    return { leftMirrorPoints: leftMirrorPoints, leftLinePoints };
+  }, [mirrorBoundsBottomPoint.reflectedY, mirrorBoundsTopPoint.reflectedY]);
 
   const mirrors: { x: number; yMin: number; yMax: number }[] = [
     {
@@ -341,53 +348,12 @@ const MirrorDemo: React.FC = () => {
               lineSegments={lineSegments}
             />
           </MaskedContent>
-          <Shape
-            sceneFunc={(context, shape) => {
-              context.beginPath();
-              lightRaysToPerson.forEach((point, index) => {
-                if (index === 0) {
-                  context.moveTo(point.x, point.y);
-                } else {
-                  context.lineTo(point.x, point.y);
-                }
-              });
-              context.closePath();
-              context.fillStrokeShape(shape);
-            }}
-            fill="white"
-            opacity={0.3}
-          />
-          <Shape
-            sceneFunc={(context, shape) => {
-              context.beginPath();
-              lightRaysToMirror.forEach((point, index) => {
-                if (index === 0) {
-                  context.moveTo(point.x, point.y);
-                } else {
-                  context.lineTo(point.x, point.y);
-                }
-              });
-              context.closePath();
-              context.fillStrokeShape(shape);
-            }}
-            fill="white"
-            opacity={0.3}
-          />
-          <Shape
-            sceneFunc={(context, shape) => {
-              context.beginPath();
-              reflectedLightRays.forEach((point, index) => {
-                if (index === 0) {
-                  context.moveTo(point.x, point.y);
-                } else {
-                  context.lineTo(point.x, point.y);
-                }
-              });
-              context.closePath();
-              context.fillStrokeShape(shape);
-            }}
-            fill="white"
-            opacity={0.1}
+          <MirrorBounds
+            mirrorBounds={[
+              lightRaysToPerson,
+              lightRaysToMirror,
+              reflectedLightRays,
+            ]}
           />
           <Line points={rightLinePoints} stroke="#6250e6" />
           {rightMirrorPoints.map(({ x, y }, index) => (
@@ -437,7 +403,7 @@ const MirrorDemo: React.FC = () => {
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
 
           <Person
-            x={personPositionRef.current.x}
+            x={personCenter.x}
             y={personPositionRef.current.y}
             radius={personRadius}
             angle={personPositionRef.current.angle}
