@@ -213,7 +213,7 @@ const MirrorDemo: React.FC = () => {
                 mirrorSpacing,
                 newPoints
               );
-              startAnimation(reflectedSegments);
+              animateLineSegments(reflectedSegments);
             }
             return;
           }
@@ -278,7 +278,7 @@ const MirrorDemo: React.FC = () => {
     setLineSegments([]);
   };
 
-  const startAnimation = (lineSegments: LineSegment[]) => {
+  const animateLineSegments = (lineSegments: LineSegment[]) => {
     setLineSegments(lineSegments);
 
     animRef.current = new Konva.Animation((frame) => {
