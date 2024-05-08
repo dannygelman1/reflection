@@ -80,7 +80,7 @@ export const VirtualRooms = ({
           y={personPosition.y}
           angle={personPosition.angle}
           radius={personRadius}
-          isMirrored
+          isMirrored={index % 2 === 0}
           fill="#74a2ed"
         />
       ))}

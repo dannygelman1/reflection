@@ -21,7 +21,46 @@ export const Person = ({
 }: PersonProps) => {
   return (
     <Group>
-      <Circle
+      <Shape
+        sceneFunc={(context, shape) => {
+          // Draw the circle
+          context.beginPath();
+          context.arc(0, 0, radius, 0, Math.PI * 2, true); // Circle at origin
+          context.closePath();
+          context.fillStrokeShape(shape);
+
+          // Draw the triangle 'beak'
+          context.save(); // Save the current context state
+          if (isMirrored) {
+            context.scale(-1, 1); // Flip the triangle for mirrored effect
+          }
+          context.translate(0, 0); // Move to the edge of the circle
+          context.rotate(angle); // Rotate around the new origin (circle's edge)
+
+          context.beginPath();
+          context.moveTo(radius - 2, 6);
+          context.lineTo(radius - 2, -6);
+          context.lineTo(radius + 10, 0);
+          context.closePath();
+          context.fillStrokeShape(shape);
+          context.restore(); // Restore the context to previous state
+        }}
+        fill={fill}
+        draggable
+        x={x}
+        y={y}
+        dragBoundFunc={(pos) => {
+          const upperBound = 500;
+          const lowerBound = 100;
+          const newY = Math.max(lowerBound, Math.min(upperBound, pos.y));
+          return {
+            x: x, // Keep x position constant
+            y: newY,
+          };
+        }}
+        onDragMove={onDragMove}
+      />
+      {/* <Circle
         x={x}
         y={y}
         radius={radius}
@@ -39,6 +78,7 @@ export const Person = ({
           };
         }}
         onDragMove={onDragMove}
+        onDragEnd={onDragMove}
       />
       <Shape
         sceneFunc={(context, shape) => {
@@ -55,7 +95,7 @@ export const Person = ({
           context.fillStrokeShape(shape);
         }}
         fill={fill}
-      />
+      /> */}
       {onDragMove && <VerticalLineWithArrows x={x} y={y} />}
     </Group>
   );
