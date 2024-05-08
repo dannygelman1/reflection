@@ -1,4 +1,5 @@
 import { LineSegment } from "./types";
+import { checkIntersection } from "line-intersect";
 
 export const findVirtualRoomBounds = (
   objectX: number,
@@ -138,4 +139,56 @@ export const calculateAngle = (
   const dx = x2 - x1;
   const dy = y2 - y1;
   return Math.atan2(dy, dx);
+};
+
+export const checkShapeIntersection = (
+  trianglePoint1: { x: number; y: number },
+  trianglePoint2: { x: number; y: number },
+  trianglePoint3: { x: number; y: number },
+  line: { x1: number; y1: number; x2: number; y2: number }
+) => {
+  const { x1, y1, x2, y2 } = line;
+
+  const intersects = [
+    checkIntersection(
+      x1,
+      y1,
+      x2,
+      y2,
+      trianglePoint1.x,
+      trianglePoint1.y,
+      trianglePoint2.x,
+      trianglePoint2.y
+    ),
+    checkIntersection(
+      x1,
+      y1,
+      x2,
+      y2,
+      trianglePoint2.x,
+      trianglePoint2.y,
+      trianglePoint3.x,
+      trianglePoint3.y
+    ),
+    checkIntersection(
+      x1,
+      y1,
+      x2,
+      y2,
+      trianglePoint3.x,
+      trianglePoint3.y,
+      trianglePoint1.x,
+      trianglePoint1.y
+    ),
+  ].some((result) => result.type === "intersecting");
+
+  return intersects;
+};
+
+export const getTrianglePoints = (x: number, y: number) => {
+  return [
+    { x: x + -40 / 3, y: y - 6 },
+    { x: x + 80 / 3, y: y },
+    { x: x + -40 / 3, y: y + 6 },
+  ];
 };

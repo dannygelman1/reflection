@@ -7,6 +7,8 @@ import {
   findLightRayPointsRecursive,
   getReflectedLineSegments,
   calculateAngle,
+  getTrianglePoints,
+  checkShapeIntersection,
 } from "./utils";
 import { RoomObject } from "./components/RoomObject";
 import { LineSegment } from "./types";
@@ -28,6 +30,7 @@ const MirrorDemo: React.FC = () => {
 
   const startingPoint = numberOfPoints;
   const triangleCenter = { x: 270, y: 275 };
+  const trianglePoints = getTrianglePoints(triangleCenter.x, triangleCenter.y);
   const personCenter = { x: 350, y: 480 };
   const distTriangleToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
   const distTriangleToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
@@ -288,7 +291,24 @@ const MirrorDemo: React.FC = () => {
             points[currentSegment].y +
             (points[currentSegment + 1].y - points[currentSegment].y) * ratio;
 
-          // Intersection check (assuming the circle's center and radius are defined)
+          let lineSegment = {
+            x1: points[currentSegment].x,
+            y1: points[currentSegment].y,
+            x2: newX,
+            y2: newY,
+          };
+
+          if (
+            checkShapeIntersection(
+              trianglePoints[0],
+              trianglePoints[1],
+              trianglePoints[2],
+              lineSegment
+            ) &&
+            currentSegment >= 1
+          ) {
+            animRef.current.stop();
+          }
           let distanceToPerson = Math.sqrt(
             (newX - personPositionRef.current.x) ** 2 +
               (newY - personPositionRef.current.y) ** 2
