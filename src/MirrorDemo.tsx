@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  ReactNode,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useRef, ReactNode } from "react";
 import { Stage, Layer, Line, Circle, Shape, Group, Arrow } from "react-konva";
 import Konva from "konva";
 import {
@@ -29,9 +22,12 @@ import {
   circleRadius,
   hoveredCircleRadius,
   personRadius,
-  dotsY,
+  personCenter,
+  triangleCenter,
+  startingPoint,
 } from "./constants";
 import { VirtualRooms } from "./components/VirtualRooms";
+import { MaskedContent } from "./components/Mask";
 
 const MirrorDemo: React.FC = () => {
   const rightMirrorPoints: { x: number; y: number }[] = [];
@@ -41,71 +37,14 @@ const MirrorDemo: React.FC = () => {
   const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
   const [hoveredLeftIndex, setHoveredLeftIndex] = useState<number>(-1);
 
-  const startingPoint = numberOfPoints;
-  const triangleCenter = { x: 270, y: 275 };
   const trianglePoints = getTrianglePoints(triangleCenter.x, triangleCenter.y);
-  const personCenter = { x: 350, y: 480 };
   const distTriangleToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
   const distTriangleToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
-  const distPersonToRightMirror = Math.abs(rightMirrorX - personCenter.x);
-  const distPersonToLeftMirror = Math.abs(leftMirrorX - personCenter.x);
   const mirrorSpacing = rightMirrorX - leftMirrorX;
 
   const [animationLine, setAnimationLine] = useState<
     { points: number[]; color: string }[]
   >([]);
-
-  const virtualTriangles = useMemo(() => {
-    const triangles = [];
-    for (let i = 0; i <= 4; i++) {
-      const distanceTriangleFinalSegment =
-        i % 2 === 1
-          ? Math.abs(rightMirrorX - triangleCenter.x)
-          : Math.abs(leftMirrorX - triangleCenter.x);
-      const newTriangleX =
-        rightMirrorX + (i - 1) * mirrorSpacing + distanceTriangleFinalSegment;
-      triangles.push({
-        x: newTriangleX,
-        y: triangleCenter.y,
-        mirrored: i % 2 === 1,
-      });
-    }
-    return triangles;
-  }, [mirrorSpacing, triangleCenter.x, triangleCenter.y]);
-
-  const virtualMirrors = useMemo(() => {
-    const mirrors = [];
-    for (let i = 0; i <= 4; i++) {
-      mirrors.push({ x: rightMirrorX + mirrorSpacing * i });
-    }
-    return mirrors;
-  }, [mirrorSpacing]);
-
-  // const virtualPerson = useMemo(() => {
-  //   console.log("here");
-  //   const persons = [];
-  //   for (let i = 0; i <= 4; i++) {
-  //     const distancePersonFinalSegment =
-  //       i % 2 === 1
-  //         ? Math.abs(rightMirrorX - personCenter.x)
-  //         : Math.abs(leftMirrorX - personCenter.x);
-  //     const newPersonX =
-  //       rightMirrorX + (i - 1) * mirrorSpacing + distancePersonFinalSegment;
-  //     persons.push({ x: newPersonX, y: personCenter.y });
-  //   }
-  //   return persons;
-  // }, [mirrorSpacing, personCenter.x, personCenter.y]);
-
-  const dotDotDot = useMemo(() => {
-    const dots = [];
-    for (let i = 0; i < 3; i++) {
-      dots.push({
-        x: rightMirrorX + 40 + mirrorSpacing * 4 + i * 30,
-        y: dotsY,
-      });
-    }
-    return dots;
-  }, [mirrorSpacing]);
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -115,11 +54,6 @@ const MirrorDemo: React.FC = () => {
     rightMirrorPoints.push({ x: rightMirrorX, y });
   }
   const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
-  const [personPosition, setPersonPosition] = useState({
-    x: personCenter.x,
-    y: personCenter.y,
-    angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
-  });
   const personPositionRef = useRef({
     x: personCenter.x,
     y: personCenter.y,
@@ -392,8 +326,13 @@ const MirrorDemo: React.FC = () => {
     const newY = e.target.y();
     setStartedMoving(true);
     animRef.current?.stop();
-    const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300);
-    setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
+    const newAngle = calculateAngle(
+      personPositionRef.current.x,
+      newY,
+      rightMirrorX,
+      300
+    );
+    // setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
 
     personPositionRef.current = {
       ...personPositionRef.current,
@@ -471,62 +410,11 @@ const MirrorDemo: React.FC = () => {
           >
             <VirtualRooms
               personPosition={{
-                y: personPosition.y,
-                angle: personPosition.angle,
+                y: personPositionRef.current.y,
+                angle: personPositionRef.current.angle,
               }}
+              lineSegments={lineSegments}
             />
-
-            {virtualMirrors.map((mirror, index) => (
-              <Line
-                key={index}
-                points={[
-                  mirror.x,
-                  (startingPoint / numberOfPoints) * lineLength,
-                  mirror.x,
-                  ((startingPoint + numberOfPoints) / numberOfPoints) *
-                    lineLength,
-                ]}
-                stroke="#6250e6"
-                strokeWidth={2}
-                opacity={0.4}
-              />
-            ))}
-            {lineSegments.map((segment, index) => (
-              <Line
-                key={index}
-                points={[
-                  segment.start.x,
-                  segment.start.y,
-                  segment.end.x,
-                  segment.end.y,
-                ]}
-                stroke={segment.color}
-                strokeWidth={3}
-                lineCap="round"
-                lineJoin="round"
-                opacity={segment.opacity * 0.5}
-                dash={index > 3 ? [5, 5] : []}
-              />
-            ))}
-            {virtualTriangles.map((triangle, index) => (
-              <RoomObject
-                key={`room_object_${index}`}
-                x={triangle.x}
-                y={triangle.y}
-                mirrored={triangle.mirrored}
-                inVirtualRoom
-              />
-            ))}
-            {dotDotDot.map((point, index) => (
-              <Circle
-                key={`dot_${index}`}
-                x={point.x}
-                y={point.y}
-                radius={4}
-                fill="#6250e6"
-                opacity={0.4}
-              />
-            ))}
           </MaskedContent>
           <Shape
             sceneFunc={(context, shape) => {
@@ -622,16 +510,15 @@ const MirrorDemo: React.FC = () => {
           ))}
 
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
+
           <Person
             x={personPositionRef.current.x}
             y={personPositionRef.current.y}
             radius={personRadius}
             angle={personPositionRef.current.angle}
-            index={0}
             fill="#347aeb"
             onDragMove={handleDragMove}
           />
-          {!startedMoving && <VerticalLineWithArrows />}
         </Layer>
       </Stage>
     </div>
@@ -639,70 +526,3 @@ const MirrorDemo: React.FC = () => {
 };
 
 export default MirrorDemo;
-
-interface MaskedContentProps {
-  maskPoints: { x: number; y: number }[];
-  children: ReactNode;
-}
-const MaskedContent = ({ maskPoints, children }: MaskedContentProps) => {
-  return (
-    <Group>
-      {children}
-      {/* The masking shape */}
-      <Shape
-        sceneFunc={(context, shape) => {
-          context.beginPath();
-          maskPoints.forEach((point, index) => {
-            if (index === 0) {
-              context.moveTo(point.x, point.y);
-            } else {
-              context.lineTo(point.x, point.y);
-            }
-          });
-          context.closePath();
-          // Fill is important for the mask to work
-          context.fillStrokeShape(shape);
-        }}
-        fill="white"
-        globalCompositeOperation="destination-in"
-      />
-      {/* Child elements that the mask will be applied to */}
-    </Group>
-  );
-};
-
-const VerticalLineWithArrows = () => {
-  const lineX = 350;
-  const lineStartY = 520;
-  const lineEndY = 555;
-  const arrowSize = 10;
-
-  return (
-    <>
-      {/* Vertical line */}
-      <Line
-        points={[lineX, lineStartY, lineX, lineEndY]}
-        stroke="black"
-        strokeWidth={2}
-      />
-      {/* Arrow at the top */}
-      <Arrow
-        points={[lineX, lineStartY + arrowSize, lineX, lineStartY]}
-        pointerLength={arrowSize}
-        pointerWidth={arrowSize}
-        fill="black"
-        stroke="black"
-        strokeWidth={2}
-      />
-      {/* Arrow at the bottom */}
-      <Arrow
-        points={[lineX, lineEndY - arrowSize, lineX, lineEndY]}
-        pointerLength={arrowSize}
-        pointerWidth={arrowSize}
-        fill="black"
-        stroke="black"
-        strokeWidth={2}
-      />
-    </>
-  );
-};

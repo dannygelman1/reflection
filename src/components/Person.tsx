@@ -1,4 +1,4 @@
-import { Circle, Group, Shape } from "react-konva";
+import { Arrow, Circle, Group, Line, Shape } from "react-konva";
 
 interface PersonProps {
   x: number;
@@ -6,7 +6,7 @@ interface PersonProps {
   angle: number;
   radius: number;
   fill: string;
-  index: number;
+  isMirrored?: boolean;
   onDragMove?: (e: any) => void;
 }
 
@@ -16,13 +16,12 @@ export const Person = ({
   angle,
   radius,
   fill,
-  index,
+  isMirrored,
   onDragMove,
 }: PersonProps) => {
   return (
-    <Group key={`person_${index}`}>
+    <Group>
       <Circle
-        key={`person_${index}`}
         x={x}
         y={y}
         radius={radius}
@@ -44,8 +43,8 @@ export const Person = ({
       <Shape
         sceneFunc={(context, shape) => {
           context.translate(x, y);
-          context.rotate(index % 2 === 1 ? -angle : angle);
-          context.scale(index % 2 === 1 ? -1 : 1, 1);
+          context.rotate(isMirrored ? -angle : angle);
+          context.scale(isMirrored ? -1 : 1, 1);
 
           context.beginPath();
           context.moveTo(radius - 2, 6);
@@ -56,6 +55,45 @@ export const Person = ({
           context.fillStrokeShape(shape);
         }}
         fill={fill}
+      />
+      {onDragMove && <VerticalLineWithArrows x={x} y={y} />}
+    </Group>
+  );
+};
+
+interface VerticalLineWithArrowsProps {
+  x: number;
+  y: number;
+}
+
+const VerticalLineWithArrows = ({ x, y }: VerticalLineWithArrowsProps) => {
+  const lineX = x;
+  const lineStartY = y - 10;
+  const lineEndY = y + 10;
+  const arrowSize = 5;
+
+  return (
+    <Group listening={false}>
+      <Line
+        points={[lineX, lineStartY, lineX, lineEndY]}
+        stroke="#343434"
+        strokeWidth={2}
+      />
+      <Arrow
+        points={[lineX, lineStartY + arrowSize, lineX, lineStartY]}
+        pointerLength={arrowSize}
+        pointerWidth={arrowSize}
+        fill="#343434"
+        stroke="#343434"
+        strokeWidth={2}
+      />
+      <Arrow
+        points={[lineX, lineEndY - arrowSize, lineX, lineEndY]}
+        pointerLength={arrowSize}
+        pointerWidth={arrowSize}
+        fill="#343434"
+        stroke="#343434"
+        strokeWidth={2}
       />
     </Group>
   );
