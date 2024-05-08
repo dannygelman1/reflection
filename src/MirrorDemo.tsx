@@ -26,7 +26,7 @@ import {
 } from "./constants";
 import { VirtualRooms } from "./components/VirtualRooms";
 import { MaskedContent } from "./components/Mask";
-import { useMirrorBounds } from "./hooks/mirrorBounds";
+import { useMirrorBounds } from "./hooks/useMirrorBounds";
 
 const MirrorDemo: React.FC = () => {
   const leftMirrorPoints: { x: number; y: number }[] = [];
@@ -52,13 +52,14 @@ const MirrorDemo: React.FC = () => {
       const y = (i / numberOfPoints) * lineLength;
       rightMirrorPoints.push({ x: rightMirrorX, y });
     }
+    // Flatten the points into an array of numbers for whatever further processing is needed
     return {
       rightMirrorPoints,
       rightLinePoints: rightMirrorPoints.flatMap((p) => [p.x, p.y]),
     };
   }, []);
 
-  const [personPosition, setPersonPosition] = useState({
+  const personPositionRef = useRef({
     x: personCenter.x,
     y: personCenter.y,
     angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
@@ -72,7 +73,7 @@ const MirrorDemo: React.FC = () => {
     lightRaysToPerson,
     lightRaysToMirror,
     reflectedLightRays,
-  } = useMirrorBounds(personPosition, rightMirrorPoints);
+  } = useMirrorBounds(personPositionRef, rightMirrorPoints);
 
   const leftLinePoints: number[] = [];
 
@@ -176,7 +177,8 @@ const MirrorDemo: React.FC = () => {
             animRef.current.stop();
           }
           let distanceToPerson = Math.sqrt(
-            (newX - personPosition.x) ** 2 + (newY - personPosition.y) ** 2
+            (newX - personPositionRef.current.x) ** 2 +
+              (newY - personPositionRef.current.y) ** 2
           );
           if (distanceToPerson <= personRadius) {
             animRef.current.stop();
@@ -250,8 +252,18 @@ const MirrorDemo: React.FC = () => {
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
     animRef.current?.stop();
-    const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300);
-    setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
+    const newAngle = calculateAngle(
+      personPositionRef.current.x,
+      newY,
+      rightMirrorX,
+      300
+    );
+
+    personPositionRef.current = {
+      ...personPositionRef.current,
+      y: newY,
+      angle: newAngle,
+    };
 
     setAnimationLine([{ points: [], color: "" }]);
     setLineSegments([]);
@@ -323,8 +335,8 @@ const MirrorDemo: React.FC = () => {
           >
             <VirtualRooms
               personPosition={{
-                y: personPosition.y,
-                angle: personPosition.angle,
+                y: personPositionRef.current.y,
+                angle: personPositionRef.current.angle,
               }}
               lineSegments={lineSegments}
             />
@@ -425,10 +437,10 @@ const MirrorDemo: React.FC = () => {
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
 
           <Person
-            x={personPosition.x}
-            y={personPosition.y}
+            x={personPositionRef.current.x}
+            y={personPositionRef.current.y}
             radius={personRadius}
-            angle={personPosition.angle}
+            angle={personPositionRef.current.angle}
             fill="#347aeb"
             onDragMove={handleDragMove}
           />
