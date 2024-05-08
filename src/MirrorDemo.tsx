@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Stage, Layer, Line, Circle } from "react-konva";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
 import {
   findLightRayPointsRecursive,
   getReflectedLineSegments,
   calculateAngle,
-  getTrianglePoints,
   checkShapeIntersection,
   colors,
 } from "./utils";
@@ -17,30 +22,26 @@ import {
   rightMirrorX,
   leftMirrorX,
   lineLength,
-  circleRadius,
-  hoveredCircleRadius,
   personRadius,
   personCenter,
   triangleCenter,
   startingPoint,
+  trianglePoints,
+  distTriangleToRightMirror,
+  distTriangleToLeftMirror,
+  mirrorSpacing,
 } from "./constants";
 import { VirtualRooms } from "./components/VirtualRooms";
 import { MaskedContent } from "./components/Mask";
 import { useMirrorBounds } from "./hooks/useMirrorBounds";
 import { MirrorBounds } from "./components/MirrorBounds";
+import { Mirror } from "./components/Mirror";
 
 const MirrorDemo: React.FC = () => {
-  const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
-  const [hoveredLeftIndex, setHoveredLeftIndex] = useState<number>(-1);
-
-  const trianglePoints = getTrianglePoints(triangleCenter.x, triangleCenter.y);
-  const distTriangleToRightMirror = Math.abs(rightMirrorX - triangleCenter.x);
-  const distTriangleToLeftMirror = Math.abs(leftMirrorX - triangleCenter.x);
-  const mirrorSpacing = rightMirrorX - leftMirrorX;
-
   const [animationLine, setAnimationLine] = useState<
     { points: number[]; color: string }[]
   >([]);
+  const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -51,16 +52,14 @@ const MirrorDemo: React.FC = () => {
     angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
   });
 
-  const { rightMirrorPoints, rightLinePoints } = useMemo(() => {
+  const { rightMirrorPoints } = useMemo(() => {
     const rightMirrorPoints: { x: number; y: number }[] = [];
     for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
       const y = (i / numberOfPoints) * lineLength;
       rightMirrorPoints.push({ x: rightMirrorX, y });
     }
-    // Flatten the points into an array of numbers for whatever further processing is needed
     return {
       rightMirrorPoints,
-      rightLinePoints: rightMirrorPoints.flatMap((p) => [p.x, p.y]),
     };
   }, []);
 
@@ -74,9 +73,8 @@ const MirrorDemo: React.FC = () => {
     reflectedLightRays,
   } = useMirrorBounds(personPositionRef, rightMirrorPoints);
 
-  const { leftMirrorPoints, leftLinePoints } = useMemo(() => {
+  const { leftMirrorPoints } = useMemo(() => {
     const leftMirrorPoints: { x: number; y: number }[] = [];
-    const leftLinePoints: number[] = [];
 
     for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
       const y = (i / numberOfPoints) * lineLength;
@@ -87,28 +85,32 @@ const MirrorDemo: React.FC = () => {
       ) {
         leftMirrorPoints.push({ x: leftMirrorX, y });
       }
-
-      leftLinePoints.push(leftMirrorX);
-      leftLinePoints.push(y);
     }
 
-    return { leftMirrorPoints: leftMirrorPoints, leftLinePoints };
+    return { leftMirrorPoints };
   }, [mirrorBoundsBottomPoint.reflectedY, mirrorBoundsTopPoint.reflectedY]);
 
-  const mirrors: { x: number; yMin: number; yMax: number }[] = [
-    {
-      x: leftMirrorX,
-      yMin: Math.max(200, mirrorBoundsTopPoint.reflectedY),
-      yMax: Math.min(400, mirrorBoundsBottomPoint.reflectedY),
-    },
-    {
-      x: rightMirrorX,
-      yMin: rightMirrorPoints[0]?.y,
-      yMax: rightMirrorPoints[rightMirrorPoints.length - 1]?.y,
-    },
-  ];
+  const mirrors = useMemo(
+    () => [
+      {
+        x: leftMirrorX,
+        yMin: Math.max(200, mirrorBoundsTopPoint.reflectedY),
+        yMax: Math.min(400, mirrorBoundsBottomPoint.reflectedY),
+      },
+      {
+        x: rightMirrorX,
+        yMin: rightMirrorPoints[0]?.y,
+        yMax: rightMirrorPoints[rightMirrorPoints.length - 1]?.y,
+      },
+    ],
+    [
+      mirrorBoundsBottomPoint.reflectedY,
+      mirrorBoundsTopPoint.reflectedY,
+      rightMirrorPoints,
+    ]
+  );
 
-  const handleCircleClick = (
+  const handleMirrorPointClick = (
     startX: number,
     startY: number,
     endX: number,
@@ -133,7 +135,7 @@ const MirrorDemo: React.FC = () => {
     setLineSegments([]);
   };
 
-  const animateLine = (points: { x: number; y: number }[]) => {
+  const animateLine = useCallback((points: { x: number; y: number }[]) => {
     let totalDistanceTraveled = 0;
     let currentSegment = 0;
     let distances = points
@@ -246,7 +248,7 @@ const MirrorDemo: React.FC = () => {
     }, layerRef.current);
 
     animRef.current.start();
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -267,7 +269,7 @@ const MirrorDemo: React.FC = () => {
     );
 
     personPositionRef.current = {
-      ...personPositionRef.current,
+      x: personCenter.x,
       y: newY,
       angle: newAngle,
     };
@@ -275,8 +277,6 @@ const MirrorDemo: React.FC = () => {
     setAnimationLine([{ points: [], color: "" }]);
     setLineSegments([]);
   };
-
-  const [lineSegments, setLineSegments] = useState<LineSegment[]>([]);
 
   const startAnimation = (lineSegments: LineSegment[]) => {
     setLineSegments(lineSegments);
@@ -348,6 +348,7 @@ const MirrorDemo: React.FC = () => {
               lineSegments={lineSegments}
             />
           </MaskedContent>
+
           <MirrorBounds
             mirrorBounds={[
               lightRaysToPerson,
@@ -355,40 +356,22 @@ const MirrorDemo: React.FC = () => {
               reflectedLightRays,
             ]}
           />
-          <Line points={rightLinePoints} stroke="#6250e6" />
-          {rightMirrorPoints.map(({ x, y }, index) => (
-            <Circle
-              key={index}
-              x={x}
-              y={y}
-              fill="#6250e6"
-              radius={
-                hoveredRightIndex === index ? hoveredCircleRadius : circleRadius
-              }
-              onMouseEnter={() => setHoveredRightIndex(index)}
-              onMouseLeave={() => setHoveredRightIndex(-1)}
-              onClick={() =>
-                handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 1)
-              }
-            />
-          ))}
-          <Line points={leftLinePoints} stroke="#6250e6" />
-          {leftMirrorPoints.map(({ x, y }, index) => (
-            <Circle
-              key={index}
-              x={x}
-              y={y}
-              radius={
-                hoveredLeftIndex === index ? hoveredCircleRadius : circleRadius
-              }
-              onMouseEnter={() => setHoveredLeftIndex(index)}
-              onMouseLeave={() => setHoveredLeftIndex(-1)}
-              fill="#6250e6"
-              onClick={() =>
-                handleCircleClick(triangleCenter.x, triangleCenter.y, x, y, 0)
-              }
-            />
-          ))}
+
+          <Mirror
+            x={leftMirrorX}
+            opacity={0.8}
+            mirrorPoints={leftMirrorPoints}
+            mirrorIndex={0}
+            handleMirrorPointClick={handleMirrorPointClick}
+          />
+          <Mirror
+            x={rightMirrorX}
+            opacity={0.8}
+            mirrorPoints={rightMirrorPoints}
+            mirrorIndex={1}
+            handleMirrorPointClick={handleMirrorPointClick}
+          />
+
           {animationLine.map((segment, index) => (
             <Line
               key={index}
