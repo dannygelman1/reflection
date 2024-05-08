@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, ReactNode } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from "react";
 import { Stage, Layer, Line, Circle, Shape, Group, Arrow } from "react-konva";
 import Konva from "konva";
 import {
@@ -13,19 +20,24 @@ import {
 } from "./utils";
 import { RoomObject } from "./components/RoomObject";
 import { LineSegment } from "./types";
+import { Person } from "./components/Person";
+import {
+  numberOfPoints,
+  rightMirrorX,
+  leftMirrorX,
+  lineLength,
+  circleRadius,
+  hoveredCircleRadius,
+  personRadius,
+  dotsY,
+} from "./constants";
+import { VirtualRooms } from "./components/VirtualRooms";
 
 const MirrorDemo: React.FC = () => {
-  const lineLength = 200;
-
-  const rightMirrorX = 400;
   const rightMirrorPoints: { x: number; y: number }[] = [];
 
-  const leftMirrorX = 200;
   const leftMirrorPoints: { x: number; y: number }[] = [];
 
-  const circleRadius = 3;
-  const hoveredCircleRadius = 6;
-  const numberOfPoints = 25;
   const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
   const [hoveredLeftIndex, setHoveredLeftIndex] = useState<number>(-1);
 
@@ -39,16 +51,61 @@ const MirrorDemo: React.FC = () => {
   const distPersonToLeftMirror = Math.abs(leftMirrorX - personCenter.x);
   const mirrorSpacing = rightMirrorX - leftMirrorX;
 
-  const personRadius = 14;
-
   const [animationLine, setAnimationLine] = useState<
     { points: number[]; color: string }[]
   >([]);
 
-  const virtualTriangles: { x: number; y: number; mirrored?: boolean }[] = [];
-  const virtualMirrors: { x: number }[] = [];
-  const virtualPerson: { x: number; y: number }[] = [];
-  const dotDotDot: { x: number; y: number }[] = [];
+  const virtualTriangles = useMemo(() => {
+    const triangles = [];
+    for (let i = 0; i <= 4; i++) {
+      const distanceTriangleFinalSegment =
+        i % 2 === 1
+          ? Math.abs(rightMirrorX - triangleCenter.x)
+          : Math.abs(leftMirrorX - triangleCenter.x);
+      const newTriangleX =
+        rightMirrorX + (i - 1) * mirrorSpacing + distanceTriangleFinalSegment;
+      triangles.push({
+        x: newTriangleX,
+        y: triangleCenter.y,
+        mirrored: i % 2 === 1,
+      });
+    }
+    return triangles;
+  }, [mirrorSpacing, triangleCenter.x, triangleCenter.y]);
+
+  const virtualMirrors = useMemo(() => {
+    const mirrors = [];
+    for (let i = 0; i <= 4; i++) {
+      mirrors.push({ x: rightMirrorX + mirrorSpacing * i });
+    }
+    return mirrors;
+  }, [mirrorSpacing]);
+
+  // const virtualPerson = useMemo(() => {
+  //   console.log("here");
+  //   const persons = [];
+  //   for (let i = 0; i <= 4; i++) {
+  //     const distancePersonFinalSegment =
+  //       i % 2 === 1
+  //         ? Math.abs(rightMirrorX - personCenter.x)
+  //         : Math.abs(leftMirrorX - personCenter.x);
+  //     const newPersonX =
+  //       rightMirrorX + (i - 1) * mirrorSpacing + distancePersonFinalSegment;
+  //     persons.push({ x: newPersonX, y: personCenter.y });
+  //   }
+  //   return persons;
+  // }, [mirrorSpacing, personCenter.x, personCenter.y]);
+
+  const dotDotDot = useMemo(() => {
+    const dots = [];
+    for (let i = 0; i < 3; i++) {
+      dots.push({
+        x: rightMirrorX + 40 + mirrorSpacing * 4 + i * 30,
+        y: dotsY,
+      });
+    }
+    return dots;
+  }, [mirrorSpacing]);
 
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
@@ -58,7 +115,6 @@ const MirrorDemo: React.FC = () => {
     rightMirrorPoints.push({ x: rightMirrorX, y });
   }
   const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
-  const centerLineY = rightMirrorPoints[0].y + lineLength / 2;
   const [personPosition, setPersonPosition] = useState({
     x: personCenter.x,
     y: personCenter.y,
@@ -70,44 +126,6 @@ const MirrorDemo: React.FC = () => {
     angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
   });
   const [startedMoving, setStartedMoving] = useState(false);
-
-  const addVirtualRoomElements = (levels: number) => {
-    const distanceTriangleFinalSegment =
-      levels % 2 === 1 ? distTriangleToRightMirror : distTriangleToLeftMirror;
-    const distancePersonFinalSegment =
-      levels % 2 === 1 ? distPersonToRightMirror : distPersonToLeftMirror;
-    const newTriangleX =
-      rightMirrorX +
-      (levels - 1) * mirrorSpacing +
-      distanceTriangleFinalSegment;
-    const newPersonX =
-      rightMirrorX + (levels - 1) * mirrorSpacing + distancePersonFinalSegment;
-    const newPerson = {
-      x: newPersonX,
-      y: personPositionRef.current.y,
-    };
-    const newTriangle = {
-      x: newTriangleX,
-      y: triangleCenter.y,
-      mirrored: levels % 2 === 1,
-    };
-    const newMirror = { x: rightMirrorX + mirrorSpacing * levels };
-    virtualTriangles.push(newTriangle);
-    virtualMirrors.push(newMirror);
-    virtualPerson.push(newPerson);
-  };
-
-  for (let i = 0; i <= 4; i++) {
-    addVirtualRoomElements(i);
-    if (i === 4) {
-      for (let j = 0; j < 3; j++) {
-        dotDotDot.push({
-          x: rightMirrorX + 40 + mirrorSpacing * 4 + j * 30,
-          y: centerLineY,
-        });
-      }
-    }
-  }
 
   const mirrorBoundsBottomPoint = findRoomBounds(
     personPositionRef.current.x,
@@ -451,39 +469,12 @@ const MirrorDemo: React.FC = () => {
               },
             ]}
           >
-            {virtualPerson.map((person, index) => (
-              <Group key={`person_${index}`}>
-                <Circle
-                  key={`person_${index}`}
-                  x={person.x}
-                  y={personPosition.y}
-                  radius={personRadius}
-                  fill="#74a2ed"
-                />
-                <Shape
-                  sceneFunc={(context, shape) => {
-                    context.translate(person.x, personPosition.y);
-                    context.rotate(
-                      index % 2 === 1
-                        ? -personPosition.angle
-                        : personPosition.angle
-                    );
-                    context.scale(index % 2 === 1 ? -1 : 1, 1);
-
-                    // Draw the triangle
-                    context.beginPath();
-                    context.moveTo(personRadius - 2, 6);
-                    context.lineTo(personRadius - 2, -6);
-                    context.lineTo(personRadius + 7, 0);
-                    context.closePath();
-
-                    // Apply styles and make it visible
-                    context.fillStrokeShape(shape);
-                  }}
-                  fill="#74a2ed"
-                />
-              </Group>
-            ))}
+            <VirtualRooms
+              personPosition={{
+                y: personPosition.y,
+                angle: personPosition.angle,
+              }}
+            />
 
             {virtualMirrors.map((mirror, index) => (
               <Line
@@ -631,47 +622,14 @@ const MirrorDemo: React.FC = () => {
           ))}
 
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
-
-          <Circle
+          <Person
             x={personPositionRef.current.x}
             y={personPositionRef.current.y}
             radius={personRadius}
+            angle={personPositionRef.current.angle}
+            index={0}
             fill="#347aeb"
-            draggable
-            dragBoundFunc={(pos) => {
-              const upperBound = 500;
-              const lowerBound = 100;
-
-              const newY = Math.max(lowerBound, Math.min(upperBound, pos.y));
-
-              return {
-                x: personPositionRef.current.x,
-                y: newY,
-              };
-            }}
             onDragMove={handleDragMove}
-          />
-
-          <Shape
-            sceneFunc={(context, shape) => {
-              context.translate(
-                personPositionRef.current.x,
-                personPositionRef.current.y
-              );
-
-              context.rotate(personPositionRef.current.angle);
-
-              // Draw the triangle
-              context.beginPath();
-              context.moveTo(personRadius - 2, 6);
-              context.lineTo(personRadius - 2, -6);
-              context.lineTo(personRadius + 7, 0);
-              context.closePath();
-
-              // Apply styles and make it visible
-              context.fillStrokeShape(shape);
-            }}
-            fill="#347aeb"
           />
           {!startedMoving && <VerticalLineWithArrows />}
         </Layer>
