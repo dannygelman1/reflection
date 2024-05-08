@@ -9,6 +9,7 @@ import {
   calculateAngle,
   getTrianglePoints,
   checkShapeIntersection,
+  colors,
 } from "./utils";
 import { RoomObject } from "./components/RoomObject";
 import { LineSegment } from "./types";
@@ -255,19 +256,6 @@ const MirrorDemo: React.FC = () => {
         Math.sqrt((point.x - points[i].x) ** 2 + (point.y - points[i].y) ** 2)
       );
 
-    const colors = [
-      "#FF6347",
-      "#4682B4",
-      "#32CD32",
-      "#FFD700",
-      "#6A5ACD",
-      "#FF69B4",
-      "#00FA9A",
-      "#FFA500",
-      "#800080",
-      "#00BFFF",
-    ];
-
     animRef.current = new Konva.Animation((frame) => {
       if (frame && animRef.current) {
         const speed = 0.2;
@@ -373,6 +361,7 @@ const MirrorDemo: React.FC = () => {
 
     animRef.current.start();
   };
+
   useEffect(() => {
     return () => {
       if (animRef.current) {
@@ -384,6 +373,7 @@ const MirrorDemo: React.FC = () => {
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
     setStartedMoving(true);
+    animRef.current?.stop();
     const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300);
     setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
 

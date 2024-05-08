@@ -76,7 +76,7 @@ export const findLightRayPointsRecursive = (
   }
 };
 
-const colors = [
+export const colors = [
   "#FF6347",
   "#4682B4",
   "#32CD32",
@@ -87,7 +87,9 @@ const colors = [
   "#FFA500",
   "#800080",
   "#00BFFF",
-].reverse();
+];
+
+const reverseColors = [...colors].reverse();
 
 export const getReflectedLineSegments = (
   mirrorX: number,
@@ -118,7 +120,12 @@ export const getReflectedLineSegments = (
       };
     }
     const color =
-      colors[(i + (colors.length - points.length + 1)) % colors.length];
+      reverseColors[
+        (i +
+          (reverseColors.length - points.length + 1) +
+          reverseColors.length) %
+          reverseColors.length
+      ];
 
     lineSegments.push({
       start: firstPoint,
