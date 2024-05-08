@@ -1,5 +1,5 @@
 import "./App.css";
-import MirrorDemo from "./MirrorDemo";
+import ReflectionInteractive from "./ReflectionInteractive";
 
 function App() {
   return (
@@ -19,7 +19,7 @@ function App() {
         ray and the position of the triangle in the reflection, or between their
         position and what they see in the reflection?
       </span>
-      <MirrorDemo />
+      <ReflectionInteractive />
     </div>
   );
 }

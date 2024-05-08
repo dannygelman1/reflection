@@ -37,7 +37,7 @@ import { useMirrorBounds } from "./hooks/useMirrorBounds";
 import { MirrorBounds } from "./components/MirrorBounds";
 import { Mirror } from "./components/Mirror";
 
-const MirrorDemo: React.FC = () => {
+const ReflectionInteractive: React.FC = () => {
   const [animationLine, setAnimationLine] = useState<
     { points: number[]; color: string }[]
   >([]);
@@ -399,4 +399,4 @@ const MirrorDemo: React.FC = () => {
   );
 };
 
-export default MirrorDemo;
+export default ReflectionInteractive;
