@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef, ReactNode } from "react";
-import { Stage, Layer, Line, Circle, Shape, Group, Arrow } from "react-konva";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Stage, Layer, Line, Circle, Shape } from "react-konva";
 import Konva from "konva";
 import {
-  findRoomBounds,
-  findVirtualRoomBounds,
   findLightRayPointsRecursive,
   getReflectedLineSegments,
   calculateAngle,
@@ -28,10 +26,9 @@ import {
 } from "./constants";
 import { VirtualRooms } from "./components/VirtualRooms";
 import { MaskedContent } from "./components/Mask";
+import { useMirrorBounds } from "./hooks/mirrorBounds";
 
 const MirrorDemo: React.FC = () => {
-  const rightMirrorPoints: { x: number; y: number }[] = [];
-
   const leftMirrorPoints: { x: number; y: number }[] = [];
 
   const [hoveredRightIndex, setHoveredRightIndex] = useState<number>(-1);
@@ -49,104 +46,33 @@ const MirrorDemo: React.FC = () => {
   const layerRef = useRef<Konva.Layer>(null);
   const animRef = useRef<Konva.Animation | null>(null);
 
-  for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
-    const y = (i / numberOfPoints) * lineLength;
-    rightMirrorPoints.push({ x: rightMirrorX, y });
-  }
-  const rightLinePoints = rightMirrorPoints.flatMap((p) => [p.x, p.y]);
-  const personPositionRef = useRef({
+  const { rightMirrorPoints, rightLinePoints } = useMemo(() => {
+    const rightMirrorPoints: { x: number; y: number }[] = [];
+    for (let i = startingPoint; i <= startingPoint + numberOfPoints; i++) {
+      const y = (i / numberOfPoints) * lineLength;
+      rightMirrorPoints.push({ x: rightMirrorX, y });
+    }
+    return {
+      rightMirrorPoints,
+      rightLinePoints: rightMirrorPoints.flatMap((p) => [p.x, p.y]),
+    };
+  }, []);
+
+  const [personPosition, setPersonPosition] = useState({
     x: personCenter.x,
     y: personCenter.y,
     angle: calculateAngle(personCenter.x, personCenter.y, rightMirrorX, 300),
   });
-  const [startedMoving, setStartedMoving] = useState(false);
 
-  const mirrorBoundsBottomPoint = findRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y,
-    leftMirrorX
-  );
-  const mirrorBoundsTopPoint = findRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y,
-    leftMirrorX
-  );
-
-  const mirrorBoundsBottomPointBackRoom = findRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y,
-    0
-  );
-  const mirrorBoundsTopPointBackRoom = findRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y,
-    0
-  );
-  const virtualMirrorBoundsBottomPoint = findVirtualRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[numberOfPoints].x,
-    rightMirrorPoints[numberOfPoints].y
-  );
-  const virtualMirrorBoundsTopPoint = findVirtualRoomBounds(
-    personPositionRef.current.x,
-    personPositionRef.current.y,
-    rightMirrorPoints[0].x,
-    rightMirrorPoints[0].y
-  );
-  const lightRaysToPerson = [
-    {
-      x: personPositionRef.current.x,
-      y: personPositionRef.current.y + personRadius,
-    },
-    {
-      x: personPositionRef.current.x,
-      y: personPositionRef.current.y - personRadius,
-    },
-    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
-    {
-      x: rightMirrorPoints[numberOfPoints].x,
-      y: rightMirrorPoints[numberOfPoints].y,
-    },
-  ];
-  const lightRaysToMirror = [
-    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
-    {
-      x: rightMirrorPoints[numberOfPoints].x,
-      y: rightMirrorPoints[numberOfPoints].y,
-    },
-    {
-      x: mirrorBoundsBottomPointBackRoom.reflectedX,
-      y: mirrorBoundsBottomPointBackRoom.reflectedY,
-    },
-    {
-      x: mirrorBoundsTopPointBackRoom.reflectedX,
-      y: mirrorBoundsTopPointBackRoom.reflectedY,
-    },
-  ];
-  const reflectedLightRays = [
-    { x: rightMirrorPoints[0].x, y: rightMirrorPoints[0].y },
-    {
-      x: rightMirrorPoints[numberOfPoints].x,
-      y: rightMirrorPoints[numberOfPoints].y,
-    },
-    {
-      x: virtualMirrorBoundsBottomPoint.newX,
-      y: virtualMirrorBoundsBottomPoint.newY,
-    },
-    {
-      x: virtualMirrorBoundsTopPoint.newX,
-      y: virtualMirrorBoundsTopPoint.newY,
-    },
-  ];
+  const {
+    mirrorBoundsBottomPoint,
+    mirrorBoundsTopPoint,
+    virtualMirrorBoundsBottomPoint,
+    virtualMirrorBoundsTopPoint,
+    lightRaysToPerson,
+    lightRaysToMirror,
+    reflectedLightRays,
+  } = useMirrorBounds(personPosition, rightMirrorPoints);
 
   const leftLinePoints: number[] = [];
 
@@ -250,8 +176,7 @@ const MirrorDemo: React.FC = () => {
             animRef.current.stop();
           }
           let distanceToPerson = Math.sqrt(
-            (newX - personPositionRef.current.x) ** 2 +
-              (newY - personPositionRef.current.y) ** 2
+            (newX - personPosition.x) ** 2 + (newY - personPosition.y) ** 2
           );
           if (distanceToPerson <= personRadius) {
             animRef.current.stop();
@@ -324,21 +249,9 @@ const MirrorDemo: React.FC = () => {
 
   const handleDragMove = (e: any) => {
     const newY = e.target.y();
-    setStartedMoving(true);
     animRef.current?.stop();
-    const newAngle = calculateAngle(
-      personPositionRef.current.x,
-      newY,
-      rightMirrorX,
-      300
-    );
-    // setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
-
-    personPositionRef.current = {
-      ...personPositionRef.current,
-      y: newY,
-      angle: newAngle,
-    };
+    const newAngle = calculateAngle(personPosition.x, newY, rightMirrorX, 300);
+    setPersonPosition((prev) => ({ ...prev, y: newY, angle: newAngle }));
 
     setAnimationLine([{ points: [], color: "" }]);
     setLineSegments([]);
@@ -410,8 +323,8 @@ const MirrorDemo: React.FC = () => {
           >
             <VirtualRooms
               personPosition={{
-                y: personPositionRef.current.y,
-                angle: personPositionRef.current.angle,
+                y: personPosition.y,
+                angle: personPosition.angle,
               }}
               lineSegments={lineSegments}
             />
@@ -512,10 +425,10 @@ const MirrorDemo: React.FC = () => {
           <RoomObject x={triangleCenter.x} y={triangleCenter.y} />
 
           <Person
-            x={personPositionRef.current.x}
-            y={personPositionRef.current.y}
+            x={personPosition.x}
+            y={personPosition.y}
             radius={personRadius}
-            angle={personPositionRef.current.angle}
+            angle={personPosition.angle}
             fill="#347aeb"
             onDragMove={handleDragMove}
           />
