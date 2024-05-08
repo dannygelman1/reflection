@@ -1,4 +1,5 @@
 import { Shape } from "react-konva";
+import { trianglePointsOffset } from "../constants";
 
 interface RoomObjectProps {
   x: number;
@@ -19,9 +20,9 @@ export const RoomObject = ({
     <Shape
       sceneFunc={(context, shape) => {
         context.beginPath();
-        context.moveTo(-40 / 3, -6);
-        context.lineTo(80 / 3, 0);
-        context.lineTo(-40 / 3, 6);
+        context.moveTo(trianglePointsOffset[0].x, trianglePointsOffset[0].y);
+        context.lineTo(trianglePointsOffset[1].x, trianglePointsOffset[1].y);
+        context.lineTo(trianglePointsOffset[2].x, trianglePointsOffset[2].y);
         context.closePath();
         context.fillStrokeShape(shape);
       }}

@@ -191,11 +191,3 @@ export const checkShapeIntersection = (
 
   return intersects;
 };
-
-export const getTrianglePoints = (x: number, y: number) => {
-  return [
-    { x: x + -40 / 3, y: y - 6 },
-    { x: x + 80 / 3, y: y },
-    { x: x + -40 / 3, y: y + 6 },
-  ];
-};
