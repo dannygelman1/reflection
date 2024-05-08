@@ -1,4 +1,4 @@
-import { Arrow, Circle, Group, Line, Shape } from "react-konva";
+import { Arrow, Group, Line, Shape } from "react-konva";
 
 interface PersonProps {
   x: number;
