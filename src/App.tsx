@@ -16,8 +16,8 @@ function App() {
         Move the person up/down and see how their view in the mirror changes.
         Press on the points on the parallel mirrors to reflect the light ray
         into their field of view. Can you see the relationship between the light
-        ray and the position of the triangle in the reflection, or between their
-        position and what they see in the reflection?
+        ray and the position of the triangle in the reflection, or between the
+        person's position and what they see in the reflection?
       </span>
       <ReflectionInteractive />
     </div>
