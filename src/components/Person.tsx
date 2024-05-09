@@ -44,6 +44,36 @@ export const Person = ({
           context.closePath();
           context.fillStrokeShape(shape);
           context.restore();
+
+          // Draw vertical line with arrows
+          const arrowWidth = 3;
+          const height = 15;
+          if (onDragMove) {
+            // Main vertical line
+            context.beginPath();
+            context.moveTo(0, -height / 2);
+            context.lineTo(0, height / 2);
+            context.lineCap = "round";
+            context.lineWidth = 2;
+            context.stroke();
+
+            // Top arrowheads
+            context.beginPath();
+            context.moveTo(0, -height / 2);
+            context.lineTo(-arrowWidth, -height / 2 + arrowWidth);
+            context.lineTo(arrowWidth, -height / 2 + arrowWidth);
+            context.lineTo(0, -height / 2);
+            context.lineCap = "round";
+            context.stroke();
+
+            // Bottom arrowheads
+            context.beginPath();
+            context.moveTo(0, height / 2);
+            context.lineTo(-arrowWidth, height / 2 - arrowWidth);
+            context.lineTo(arrowWidth, height / 2 - arrowWidth);
+            context.lineTo(0, height / 2);
+            context.stroke();
+          }
         }}
         fill={fill}
         x={x}
@@ -59,45 +89,6 @@ export const Person = ({
         }}
         draggable={onDragMove ? true : false}
         onDragMove={onDragMove}
-      />
-      {onDragMove && <VerticalLineWithArrows x={x} y={y} />}
-    </Group>
-  );
-};
-
-interface VerticalLineWithArrowsProps {
-  x: number;
-  y: number;
-}
-
-const VerticalLineWithArrows = ({ x, y }: VerticalLineWithArrowsProps) => {
-  const lineX = x;
-  const lineStartY = y - 10;
-  const lineEndY = y + 10;
-  const arrowSize = 5;
-
-  return (
-    <Group listening={false}>
-      <Line
-        points={[lineX, lineStartY, lineX, lineEndY]}
-        stroke="#343434"
-        strokeWidth={2}
-      />
-      <Arrow
-        points={[lineX, lineStartY + arrowSize, lineX, lineStartY]}
-        pointerLength={arrowSize}
-        pointerWidth={arrowSize}
-        fill="#343434"
-        stroke="#343434"
-        strokeWidth={2}
-      />
-      <Arrow
-        points={[lineX, lineEndY - arrowSize, lineX, lineEndY]}
-        pointerLength={arrowSize}
-        pointerWidth={arrowSize}
-        fill="#343434"
-        stroke="#343434"
-        strokeWidth={2}
       />
     </Group>
   );
